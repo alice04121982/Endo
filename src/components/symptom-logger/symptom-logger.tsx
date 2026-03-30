@@ -662,7 +662,7 @@ export function SymptomLogger({
                         <div className="flex items-center gap-2">
                           <div className="w-20 h-1.5 rounded-full bg-secondary overflow-hidden">
                             <div
-                              className="h-full rounded-full bg-gradient-to-r from-endo-lavender to-endo-pink"
+                              className="h-full rounded-full bg-[var(--color-brand-lavender)]"
                               style={{
                                 width: `${corr.confidence * 100}%`,
                               }}

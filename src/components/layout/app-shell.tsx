@@ -62,7 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-screen">
       {/* ── Top navigation bar ── */}
       <header className="sticky top-0 z-50 bg-[var(--color-brand-smoke)]/95 backdrop-blur-sm">
-        <div className="mx-auto max-w-7xl relative flex items-center justify-between h-18 lg:h-16 px-5 lg:px-8 overflow-hidden">
+        <div className="mx-auto max-w-7xl relative flex items-center justify-between h-18 lg:h-16 px-6 lg:px-8 overflow-hidden">
           {/* Logo */}
           <Link href="/" className="shrink-0">
             <svg

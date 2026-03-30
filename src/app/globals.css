@@ -52,6 +52,12 @@
   --radius-3xl: 1.5rem;
   --radius-4xl: 1.5rem;
 
+  /* ── Type scale (xs–xl override) ── */
+  --text-xs: 0.75rem;    /* 12px */
+  --text-sm: 0.875rem;   /* 14px */
+  --text-lg: 1.125rem;   /* 18px */
+  --text-xl: 1.25rem;    /* 20px */
+
   /* ── Brand tokens ── */
   --color-brand-midnight: #0E3D68;
   --color-brand-blue: #4791FF;
@@ -117,6 +123,15 @@
 }
 
 @layer utilities {
+  /* ── Type scale ── */
+  .text-md          { font-size: 1rem;      line-height: 1.5rem; }
+  .text-display-xs  { font-size: 1.5rem;    line-height: 2rem; }
+  .text-display-sm  { font-size: 1.875rem;  line-height: 2.375rem; }
+  .text-display-md  { font-size: 2.25rem;   line-height: 2.75rem; }
+  .text-display-lg  { font-size: 3rem;      line-height: 3.75rem; }
+  .text-display-xl  { font-size: 3.75rem;   line-height: 4.5rem; }
+  .text-display-2xl { font-size: 4.5rem;    line-height: 5.625rem; }
+
   .font-display {
     font-family: var(--font-display);
   }
@@ -185,12 +200,10 @@
   .card-neutral {
     background-color: #FFFFFF;
     color: var(--color-brand-midnight);
-    border: 1px solid #D4DCE6;
   }
   .card-neutral .tag-pill {
     background-color: #FFFFFF;
     color: var(--color-brand-midnight);
-    border: 1px solid #D4DCE6;
   }
   .card-neutral .card-cta {
     color: var(--color-brand-orange);
@@ -233,18 +246,9 @@
     gap: 0.625rem;
   }
 
-  /* ── Soft shadows ── */
-  .card-soft {
-    box-shadow:
-      0 1px 3px rgba(14, 61, 104, 0.04),
-      0 4px 16px rgba(14, 61, 104, 0.03);
-  }
-
-  .card-lifted {
-    box-shadow:
-      0 2px 8px rgba(71, 145, 255, 0.1),
-      0 12px 32px rgba(14, 61, 104, 0.06);
-  }
+  /* ── Shadows (flat design — none) ── */
+  .card-soft { box-shadow: none; }
+  .card-lifted { box-shadow: none; }
 
   /* ── Hero — flat colour, no gradient ── */
   .hero-editorial {
