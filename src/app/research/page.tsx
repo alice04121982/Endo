@@ -1,4 +1,3 @@
-import Image from "next/image";
 import {
   Heart,
   ExternalLink,
@@ -11,6 +10,15 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  IllustrationPainScience,
+  IllustrationTreatments,
+  IllustrationGut,
+  IllustrationFatigue,
+  IllustrationDiagnosis,
+  IllustrationAdvocacy,
+} from "@/components/illustrations";
+import { ComponentType } from "react";
 
 const SUPPORT_RESOURCES = [
   {
@@ -39,48 +47,54 @@ const SUPPORT_RESOURCES = [
   },
 ];
 
-const EVIDENCE_TOPICS = [
+const EVIDENCE_TOPICS: {
+  title: string;
+  summary: string;
+  tag: string;
+  color: string;
+  Illustration: ComponentType<{ className?: string }>;
+}[] = [
   {
     title: "Why does it hurt?",
     summary: "Endometriosis lesions can grow their own nerve supply and blood vessels, making them uniquely painful. New treatments target these specific pathways.",
     tag: "Pain Science",
     color: "gradient-card-lavender",
-    image: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=640&q=80&auto=format&fit=crop",
+    Illustration: IllustrationPainScience,
   },
   {
     title: "Beyond hormones",
     summary: "Exciting non-hormonal treatments are being studied, including nerve-targeted pain relief and metabolic therapies that could change the game.",
     tag: "New Treatments",
     color: "gradient-card-pink",
-    image: "https://images.unsplash.com/photo-1545205597-3d9d02c29597?w=640&q=80&auto=format&fit=crop",
+    Illustration: IllustrationTreatments,
   },
   {
     title: "The gut connection",
     summary: "Research shows your gut bacteria may influence endometriosis through estrogen recycling. Dietary changes and probiotics are being studied.",
     tag: "Gut Health",
     color: "gradient-card-sage",
-    image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=640&q=80&auto=format&fit=crop",
+    Illustration: IllustrationGut,
   },
   {
     title: "Fatigue is real",
     summary: "That bone-deep exhaustion isn't in your head. Inflammatory chemicals from endometriosis enter your bloodstream and affect your whole body.",
     tag: "Validation",
     color: "gradient-card-coral",
-    image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=640&q=80&auto=format&fit=crop",
+    Illustration: IllustrationFatigue,
   },
   {
     title: "Getting diagnosed faster",
     summary: "New biomarker research aims to reduce the 7-10 year average diagnosis time. Blood tests and imaging advances are in clinical trials now.",
     tag: "Diagnosis",
     color: "gradient-card-lemon",
-    image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=640&q=80&auto=format&fit=crop",
+    Illustration: IllustrationDiagnosis,
   },
   {
     title: "Your pain matters",
     summary: "Studies show that patients who track and share their symptoms systematically get faster referrals and more targeted treatment plans.",
     tag: "Advocacy",
     color: "gradient-card-lavender",
-    image: "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=640&q=80&auto=format&fit=crop",
+    Illustration: IllustrationAdvocacy,
   },
 ];
 
@@ -149,13 +163,7 @@ export default function ResearchPage() {
                 </p>
               </CardContent>
               <div className="relative h-40 overflow-hidden">
-                <Image
-                  src={topic.image}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="(min-width: 768px) 50vw, 100vw"
-                />
+                <topic.Illustration className="w-full h-full" />
               </div>
             </Card>
           ))}
