@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, Plus, Stethoscope } from "lucide-react";
+import { Stethoscope } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -117,16 +117,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               Patient Portal ↗
             </Link>
 
-            {/* New assessment */}
-            <Link href="/cdss/patients">
-              <Button
-                size="sm"
-                className="rounded-full bg-[#0057FF] text-white font-semibold h-9 px-5 hover:bg-[#0046D4] gap-1.5"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                New Assessment
-              </Button>
-            </Link>
           </div>
         </div>
       </header>

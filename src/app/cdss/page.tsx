@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
   BookOpen,
-  FlaskConical,
   Plus,
+  Search,
   UserCircle,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,15 +86,14 @@ const RESEARCH_HIGHLIGHTS = [
 
 export default function CdssDashboard() {
   const { patients, getRiskAssessment, setCurrentPatientId } = useCdss();
+  const [patientQuery, setPatientQuery] = useState("");
 
-  const assessments = useMemo(
-    () =>
-      patients.map((p) => ({
-        patient: p,
-        risk: getRiskAssessment(p.id),
-      })),
-    [patients, getRiskAssessment]
-  );
+  const assessments = useMemo(() => {
+    const q = patientQuery.toLowerCase().trim();
+    return patients
+      .filter((p) => !q || p.name.toLowerCase().includes(q))
+      .map((p) => ({ patient: p, risk: getRiskAssessment(p.id) }));
+  }, [patients, patientQuery, getRiskAssessment]);
 
   const alertPatients = assessments.filter(
     (a) => (a.risk?.clinical_alerts.length ?? 0) > 0
@@ -137,25 +137,38 @@ export default function CdssDashboard() {
 
           {/* Patient list */}
           <Card className="bg-white border-[#E8E8E8]">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="font-display text-base font-bold text-[var(--color-brand-midnight)]">
-                My Patients
-                {patients.length > 0 && (
-                  <span className="ml-2 text-sm font-normal text-[var(--color-brand-muted)]">
-                    ({patients.length})
-                  </span>
-                )}
-              </CardTitle>
-              <Link href="/cdss/patients">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 gap-1.5 text-xs font-semibold border-[#E8E8E8]"
-                >
-                  <Plus className="h-3 w-3" />
-                  Add Patient
-                </Button>
-              </Link>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <CardTitle className="font-display text-base font-bold text-[var(--color-brand-midnight)]">
+                  My Patients
+                  {patients.length > 0 && (
+                    <span className="ml-2 text-sm font-normal text-[var(--color-brand-muted)]">
+                      ({patients.length})
+                    </span>
+                  )}
+                </CardTitle>
+                <Link href="/cdss/patients">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs font-semibold border-[#E8E8E8] shrink-0"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add Patient
+                  </Button>
+                </Link>
+              </div>
+              {patients.length > 0 && (
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--color-brand-muted)]" />
+                  <Input
+                    value={patientQuery}
+                    onChange={(e) => setPatientQuery(e.target.value)}
+                    placeholder="Search patients…"
+                    className="pl-9 h-8 text-sm bg-[#F8F9FA] border-[#E8E8E8]"
+                  />
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               {assessments.length === 0 ? (
@@ -164,7 +177,7 @@ export default function CdssDashboard() {
                   <p className="text-sm text-[var(--color-brand-muted)] mb-4">
                     No patients yet. Add your first patient to begin.
                   </p>
-                  <Link href="/cdss/patients">
+                  <Link href="/cdss/patient?new=1">
                     <Button
                       size="sm"
                       className="bg-[var(--color-brand-primary)] text-white hover:bg-[var(--color-brand-primary-hover)] gap-1.5"
@@ -174,11 +187,19 @@ export default function CdssDashboard() {
                     </Button>
                   </Link>
                 </div>
+              ) : assessments.length === 0 ? (
+                <div className="px-5 py-8 text-center">
+                  <p className="text-sm text-[var(--color-brand-muted)]">
+                    No patients match &ldquo;{patientQuery}&rdquo;.
+                  </p>
+                </div>
               ) : (
                 <div className="divide-y divide-[#E8E8E8]">
                   {assessments.map(({ patient, risk }) => (
-                    <div
+                    <Link
                       key={patient.id}
+                      href={`/cdss/patients/${patient.id}`}
+                      onClick={() => setCurrentPatientId(patient.id)}
                       className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-[#F8F9FA] transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
@@ -216,31 +237,10 @@ export default function CdssDashboard() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Link
-                          href={`/cdss/patient?edit=${patient.id}`}
-                          onClick={() => setCurrentPatientId(patient.id)}
-                          className="text-xs font-semibold text-[var(--color-brand-muted)] hover:text-[var(--color-brand-midnight)] transition-colors"
-                        >
-                          History
-                        </Link>
-                        <Link
-                          href={`/cdss/biomarkers?patient=${patient.id}`}
-                          onClick={() => setCurrentPatientId(patient.id)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-brand-primary)] hover:text-[var(--color-brand-primary-hover)] transition-colors"
-                        >
-                          <FlaskConical className="h-3 w-3" />
-                          Biomarkers
-                        </Link>
-                        <Link
-                          href={`/cdss/trends?patient=${patient.id}`}
-                          onClick={() => setCurrentPatientId(patient.id)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--color-brand-muted)] hover:text-[var(--color-brand-midnight)] transition-colors"
-                        >
-                          Trends
-                        </Link>
-                      </div>
-                    </div>
+                      <span className="text-xs font-semibold text-[var(--color-brand-primary)] transition-colors shrink-0">
+                        View →
+                      </span>
+                    </Link>
                   ))}
                 </div>
               )}

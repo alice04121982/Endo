@@ -6,10 +6,9 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRight,
-  FlaskConical,
   Plus,
   Search,
-  TrendingUp,
+  Trash2,
   UserCircle,
   UserPlus,
 } from "lucide-react";
@@ -17,6 +16,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useCdss } from "@/lib/cdss-store";
 import type { RiskLevel } from "@/lib/types/cdss";
 
@@ -36,8 +45,9 @@ const riskLabels: Record<RiskLevel, string> = {
 
 export default function PatientsPage() {
   const router = useRouter();
-  const { patients, getRiskAssessment, setCurrentPatientId } = useCdss();
+  const { patients, getRiskAssessment, setCurrentPatientId, removePatient, currentPatient } = useCdss();
   const [query, setQuery] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -55,6 +65,20 @@ export default function PatientsPage() {
     router.push(dest);
   }
 
+  function goToPatient(patientId: string, tab?: string) {
+    setCurrentPatientId(patientId);
+    router.push(`/cdss/patients/${patientId}${tab ? `?tab=${tab}` : ""}`);
+  }
+
+  function handleDelete() {
+    if (!deleteId) return;
+    if (currentPatient?.id === deleteId) setCurrentPatientId(null);
+    removePatient(deleteId);
+    setDeleteId(null);
+  }
+
+  const patientToDelete = patients.find((p) => p.id === deleteId);
+
   return (
     <div className="px-6 lg:px-8 py-6 lg:py-8 max-w-4xl">
       {/* Header */}
@@ -67,7 +91,7 @@ export default function PatientsPage() {
             Select a patient to continue their assessment, or add a new one.
           </p>
         </div>
-        <Link href="/cdss/patient">
+        <Link href="/cdss/patient?new=1">
           <Button className="shrink-0 bg-[var(--color-brand-primary)] text-white hover:bg-[var(--color-brand-primary-hover)] gap-1.5 font-semibold">
             <UserPlus className="h-4 w-4" />
             New Patient
@@ -97,7 +121,7 @@ export default function PatientsPage() {
             <p className="text-sm text-[var(--color-brand-muted)] mb-5 max-w-sm mx-auto">
               Add your first patient to begin a risk stratification assessment.
             </p>
-            <Link href="/cdss/patient">
+            <Link href="/cdss/patient?new=1">
               <Button className="bg-[var(--color-brand-primary)] text-white hover:bg-[var(--color-brand-primary-hover)] gap-1.5">
                 <Plus className="h-4 w-4" />
                 Add First Patient
@@ -118,7 +142,8 @@ export default function PatientsPage() {
           {assessments.map(({ patient, risk }) => (
             <Card
               key={patient.id}
-              className="bg-white border-[#E8E8E8] hover:border-[var(--color-brand-primary)]/30 transition-colors"
+              className="bg-white border-[#E8E8E8] hover:border-[var(--color-brand-primary)]/30 transition-colors cursor-pointer"
+              onClick={() => goToPatient(patient.id)}
             >
               <CardContent className="py-4 px-5">
                 <div className="flex items-center gap-4">
@@ -166,59 +191,57 @@ export default function PatientsPage() {
                     )}
                   </div>
 
-                  {/* Journey actions */}
+                  {/* Actions */}
                   <div className="flex items-center gap-2 shrink-0">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleSelect(patient.id, `/cdss/patient?edit=${patient.id}`)}
-                      className="h-8 text-xs font-semibold border-[#E8E8E8] text-[var(--color-brand-muted)] hover:text-[var(--color-brand-midnight)]"
+                      onClick={(e) => { e.stopPropagation(); goToPatient(patient.id); }}
+                      className="h-8 text-xs font-semibold border-[#E8E8E8] text-[var(--color-brand-primary)]"
                     >
-                      History
+                      View Patient
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleSelect(patient.id, `/cdss/biomarkers?patient=${patient.id}`)}
-                      className="h-8 text-xs font-semibold border-[#E8E8E8] gap-1 text-[var(--color-brand-primary)]"
+                      onClick={(e) => { e.stopPropagation(); setDeleteId(patient.id); }}
+                      className="h-8 w-8 p-0 border-[#E8E8E8] text-[var(--color-brand-muted)] hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+                      aria-label="Delete patient"
                     >
-                      <FlaskConical className="h-3 w-3" />
-                      Biomarkers
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSelect(patient.id, `/cdss/trends?patient=${patient.id}`)}
-                      className="h-8 text-xs font-semibold border-[#E8E8E8] gap-1 text-[var(--color-brand-muted)] hover:text-[var(--color-brand-midnight)]"
-                    >
-                      <TrendingUp className="h-3 w-3" />
-                      Trends
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
 
                 {/* Assessment journey steps */}
                 <div className="mt-3 pt-3 border-t border-[#F3F4F6] flex items-center gap-1 text-xs text-[var(--color-brand-muted)]">
-                  <span className="font-semibold text-[var(--color-brand-midnight)]">Assessment journey:</span>
+                  <span className="font-semibold text-[var(--color-brand-midnight)]">Quick access:</span>
                   <button
-                    onClick={() => handleSelect(patient.id, `/cdss/patient?edit=${patient.id}`)}
-                    className="px-2 py-0.5 rounded bg-[var(--color-brand-primary)]/10 text-[var(--color-brand-primary)] font-semibold hover:bg-[var(--color-brand-primary)]/20 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "history"); }}
+                    className="px-2 py-0.5 rounded hover:bg-[#F3F4F6] transition-colors"
                   >
-                    1. Patient History
+                    History
                   </button>
                   <ArrowRight className="h-3 w-3" />
                   <button
-                    onClick={() => handleSelect(patient.id, `/cdss/biomarkers?patient=${patient.id}`)}
+                    onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "biomarkers"); }}
                     className="px-2 py-0.5 rounded hover:bg-[#F3F4F6] transition-colors"
                   >
-                    2. Biomarkers
+                    Biomarkers
                   </button>
                   <ArrowRight className="h-3 w-3" />
                   <button
-                    onClick={() => handleSelect(patient.id, `/cdss/trends?patient=${patient.id}`)}
+                    onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "trends"); }}
                     className="px-2 py-0.5 rounded hover:bg-[#F3F4F6] transition-colors"
                   >
-                    3. Longitudinal Trends
+                    Trends
+                  </button>
+                  <ArrowRight className="h-3 w-3" />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "contributions"); }}
+                    className="px-2 py-0.5 rounded hover:bg-[#F3F4F6] transition-colors"
+                  >
+                    Contributions
                   </button>
                 </div>
               </CardContent>
@@ -226,6 +249,30 @@ export default function PatientsPage() {
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => { if (!open) setDeleteId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete patient?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove{" "}
+              <span className="font-semibold text-[var(--color-brand-midnight)]">
+                {patientToDelete?.name}
+              </span>{" "}
+              and all their biomarker records and symptom logs. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 text-white hover:bg-red-700 focus:ring-red-600"
+            >
+              Delete patient
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

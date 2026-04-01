@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useCdss } from "@/lib/cdss-store";
 import type { ConsultationNote, FailedTreatment, PatientHistory } from "@/lib/types/cdss";
+import { ConsultationRecorder } from "@/components/consultation/consultation-recorder";
 
 const COMORBIDITY_OPTIONS = [
   "IBS",
@@ -118,6 +119,7 @@ export default function PatientHistoryPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editPatientId = searchParams.get("edit");
+  const skipSearch = searchParams.get("new") === "1";
   const { addPatient, updatePatient, patients, getRiskAssessment } = useCdss();
 
   const existingPatient = useMemo(
@@ -125,9 +127,9 @@ export default function PatientHistoryPage() {
     [editPatientId, patients]
   );
 
-  // Search step state — only used when there's no ?edit param
+  // Search step state — only used when no ?edit or ?new=1 param
   const [searchQuery, setSearchQuery] = useState("");
-  const [showNewForm, setShowNewForm] = useState(false);
+  const [showNewForm, setShowNewForm] = useState(skipSearch);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return patients;
@@ -135,7 +137,7 @@ export default function PatientHistoryPage() {
     return patients.filter((p) => p.name.toLowerCase().includes(q));
   }, [searchQuery, patients]);
 
-  // Whether to show the form (edit mode or clinician chose "New Patient")
+  // Whether to show the form
   const showForm = !!editPatientId || showNewForm;
 
   const [form, setForm] = useState<FormState>(initialForm);
@@ -187,6 +189,20 @@ export default function PatientHistoryPage() {
     setForm((prev) => ({
       ...prev,
       failed_treatments: prev.failed_treatments.filter((_, i) => i !== index),
+    }));
+  }
+
+  function addConsultationNoteFromRecording({ content, transcript }: { content: string; transcript: string }) {
+    const note: ConsultationNote = {
+      id: `note-${Date.now()}`,
+      date: new Date().toISOString().split("T")[0],
+      clinician: "",
+      content: content.trim(),
+    };
+    void transcript; // retained in SOAP content; not stored separately
+    setForm((prev) => ({
+      ...prev,
+      consultation_notes: [note, ...prev.consultation_notes],
     }));
   }
 
@@ -327,7 +343,7 @@ export default function PatientHistoryPage() {
         <div className="flex items-center gap-2.5 mb-1">
           <ClipboardList className="h-5 w-5 text-[var(--color-brand-blue)]" />
           <p className="text-xs font-semibold tracking-wide uppercase text-[var(--color-brand-muted)]">
-            {editPatientId ? "Update Assessment" : "New Assessment"}
+            {editPatientId ? "Update Assessment" : "New Patient"}
           </p>
         </div>
         <h1 className="heading-display text-display-xs sm:text-display-sm text-[var(--color-brand-midnight)]">
@@ -347,6 +363,12 @@ export default function PatientHistoryPage() {
           </button>
         )}
       </div>
+
+      {/* Consultation Recorder */}
+      <ConsultationRecorder
+        patient={form}
+        onSave={addConsultationNoteFromRecording}
+      />
 
       {/* Demographics */}
       <Card className="bg-white border-[#E8E8E8]">
@@ -532,7 +554,7 @@ export default function PatientHistoryPage() {
               label="Dyschezia"
               checked={form.dyschezia}
               onChange={(v) => update("dyschezia", v)}
-              hint="Painful defecation, cyclical"
+              hint="Painful defecation"
             />
             <CheckboxField
               label="Dysuria"
