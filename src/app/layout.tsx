@@ -4,7 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { EntriesProvider } from "@/lib/entries-store";
-import { AppShell } from "@/components/layout/app-shell";
+import { CdssProvider } from "@/lib/cdss-store";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -14,9 +14,9 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Endo | Endometriosis Support & Tracking",
+  title: "EndoLink | Clinical Decision Support System",
   description:
-    "Track symptoms, discover patterns, and feel empowered talking to your doctor. Evidence-based endometriosis support.",
+    "Endometriosis risk stratification integrating biomarkers, lab investigations, and clinical history. NICE NG73 aligned.",
 };
 
 export default function RootLayout({
@@ -29,13 +29,15 @@ export default function RootLayout({
       lang="en"
       className={`${outfit.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="bg-background text-foreground">
         <QueryProvider>
           <EntriesProvider>
-            <TooltipProvider>
-              <AppShell>{children}</AppShell>
-              <Toaster />
-            </TooltipProvider>
+            <CdssProvider>
+              <TooltipProvider>
+                {children}
+                <Toaster />
+              </TooltipProvider>
+            </CdssProvider>
           </EntriesProvider>
         </QueryProvider>
       </body>

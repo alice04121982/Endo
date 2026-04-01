@@ -4,15 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Activity,
-  Calendar,
-  FileText,
-  Heart,
+  ClipboardList,
+  FlaskConical,
   Menu,
   Search,
-  Shield,
-  Sparkles,
-  Users,
+  Stethoscope,
+  TrendingUp,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,22 +17,17 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { cn } from "@/lib/utils";
 
 const navigation = [
-  { name: "Home", href: "/" },
-  { name: "Track", href: "/log" },
-  { name: "Timeline", href: "/timeline" },
-  { name: "Insights", href: "/insights" },
-  { name: "Community", href: "/research" },
-  { name: "Report", href: "/report" },
+  { name: "Dashboard", href: "/cdss" },
+  { name: "Patient History", href: "/cdss/patient" },
+  { name: "Biomarkers", href: "/cdss/biomarkers" },
+  { name: "Trends", href: "/cdss/trends" },
 ];
 
 const mobileNav = [
-  { name: "Home", href: "/", icon: Heart },
-  { name: "Track", href: "/log", icon: Activity },
-  { name: "Timeline", href: "/timeline", icon: Calendar },
-  { name: "Insights", href: "/insights", icon: Sparkles },
-  { name: "Community", href: "/research", icon: Users },
-  { name: "Report", href: "/report", icon: FileText },
-  { name: "Privacy", href: "/privacy", icon: Shield },
+  { name: "Dashboard", href: "/cdss", icon: Stethoscope },
+  { name: "Patient History", href: "/cdss/patient", icon: ClipboardList },
+  { name: "Biomarkers", href: "/cdss/biomarkers", icon: FlaskConical },
+  { name: "Trends", href: "/cdss/trends", icon: TrendingUp },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -205,7 +197,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <p className="text-xs font-bold text-[var(--color-brand-midnight)]">
                           Need support?
                         </p>
-                        <p className="text-[11px] text-[var(--color-brand-muted)] mt-0.5 leading-relaxed">
+                        <p className="text-xs text-[var(--color-brand-muted)] mt-0.5 leading-relaxed">
                           You&apos;re not alone. Connect with others who understand.
                         </p>
                       </div>

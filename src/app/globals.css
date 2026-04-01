@@ -44,69 +44,70 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: 1.5rem;
-  --radius-2xl: 1.5rem;
-  --radius-3xl: 1.5rem;
-  --radius-4xl: 1.5rem;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-2xl: 12px;
+  --radius-3xl: 12px;
+  --radius-4xl: 12px;
 
-  /* ── Type scale (xs–xl override) ── */
-  --text-xs: 0.75rem;    /* 12px */
-  --text-sm: 0.875rem;   /* 14px */
+  /* ── Type scale (WCAG AA: min 16px body, 14px labels) ── */
+  --text-xs: 0.8125rem;  /* 13px — smallest allowed (labels, captions) */
+  --text-sm: 0.9375rem;  /* 15px — secondary text */
+  --text-base: 1rem;     /* 16px — body text minimum */
   --text-lg: 1.125rem;   /* 18px */
   --text-xl: 1.25rem;    /* 20px */
 
   /* ── Brand tokens ── */
-  --color-brand-midnight: #0E3D68;
-  --color-brand-blue: #4791FF;
-  --color-brand-blue-light: #A3C4FF;
-  --color-brand-lavender: #FBBFEC;
-  --color-brand-lavender-light: #FDE3F7;
-  --color-brand-orange: #FF6833;
-  --color-brand-orange-light: #FFB299;
-  --color-brand-smoke: #F4F2F2;
+  --color-brand-midnight: #111827;
+  --color-brand-blue: #0057FF;
+  --color-brand-blue-light: #EEF3FF;
+  --color-brand-primary: #0057FF;   /* Action blue — reference #0057ff */
+  --color-brand-primary-hover: #0046D4;
+  --color-brand-orange: #F97C00;    /* Warning amber — alerts/risk only */
+  --color-brand-orange-light: #FFF3E0;
+  --color-brand-smoke: #F8F9FA;     /* Near-white background */
   --color-brand-white: #FFFFFF;
-  --color-brand-ink: #0E3D68;
-  --color-brand-ink-soft: #2A5A8A;
-  --color-brand-muted: #6B8BAF;
+  --color-brand-ink: #111827;
+  --color-brand-ink-soft: #374151;
+  --color-brand-muted: #6B7280;
 }
 
 /* ── Palette ── */
 :root {
-  --background: #F4F2F2;
-  --foreground: #0E3D68;
+  --background: #F8F9FA;
+  --foreground: #111827;
   --card: #FFFFFF;
-  --card-foreground: #0E3D68;
+  --card-foreground: #111827;
   --popover: #FFFFFF;
-  --popover-foreground: #0E3D68;
-  --primary: #FF6833;
+  --popover-foreground: #111827;
+  --primary: #0057FF;
   --primary-foreground: #FFFFFF;
-  --secondary: #E8EDF4;
-  --secondary-foreground: #0E3D68;
-  --muted: #E8EDF4;
-  --muted-foreground: #6B8BAF;
-  --accent: #4791FF;
+  --secondary: #EEF3FF;
+  --secondary-foreground: #111827;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #0057FF;
   --accent-foreground: #FFFFFF;
-  --destructive: #E04040;
-  --border: #D4DCE6;
-  --input: #E8EDF4;
-  --ring: #4791FF;
-  --chart-1: #0E3D68;
-  --chart-2: #4791FF;
-  --chart-3: #FF6833;
-  --chart-4: #FBBFEC;
-  --chart-5: #6B8BAF;
-  --radius: 1.25rem;
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #0E3D68;
-  --sidebar-primary: #FF6833;
+  --destructive: #D00D00;
+  --border: #E8E8E8;
+  --input: #F3F4F6;
+  --ring: #0057FF;
+  --chart-1: #0057FF;
+  --chart-2: #003E8B;
+  --chart-3: #F97C00;
+  --chart-4: #028901;
+  --chart-5: #6B7280;
+  --radius: 6px;
+  --sidebar: #003E8B;
+  --sidebar-foreground: #E8F0FF;
+  --sidebar-primary: #5B96FF;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #E8EDF4;
-  --sidebar-accent-foreground: #0E3D68;
-  --sidebar-border: #D4DCE6;
-  --sidebar-ring: #4791FF;
+  --sidebar-accent: #002D6E;
+  --sidebar-accent-foreground: #E8F0FF;
+  --sidebar-border: #002D6E;
+  --sidebar-ring: #5B96FF;
 }
 
 @layer base {
@@ -116,9 +117,16 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    font-size: 1rem;      /* 16px — WCAG AA minimum for body text */
+    line-height: 1.5;     /* 1.5x line-height for readability */
   }
   html {
     @apply font-sans;
+  }
+  /* Subtle card elevation matching reference design */
+  [data-slot="card"] {
+    box-shadow: 0 1px 10px rgba(0, 0, 0, 0.07);
+    border-color: #E8E8E8;
   }
 }
 
@@ -169,7 +177,7 @@
     min-height: 380px;
     display: flex;
     flex-direction: column;
-    border-radius: 20px;
+    border-radius: 8px;
     overflow: hidden;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
