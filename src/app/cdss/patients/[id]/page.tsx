@@ -18,6 +18,7 @@ import {
   TrendingUp,
   X,
 } from "lucide-react";
+import { ConsultationRecorder } from "@/components/consultation/consultation-recorder";
 import {
   AreaChart,
   Area,
@@ -90,9 +91,25 @@ const alertStyles: Record<ClinicalAlert["severity"], string> = {
 // ── History Tab ────────────────────────────────────────────────────────────────
 
 function HistoryTab({ patientId }: { patientId: string }) {
-  const { patients } = useCdss();
+  const { patients, updatePatient } = useCdss();
+  const [showRecorder, setShowRecorder] = useState(false);
+
   const patient = patients.find((p) => p.id === patientId);
   if (!patient) return null;
+
+  function handleSaveAssessment({ content, transcript }: { content: string; transcript: string }) {
+    void transcript;
+    const note = {
+      id: `note-${Date.now()}`,
+      date: new Date().toISOString().split("T")[0],
+      clinician: "",
+      content: content.trim(),
+    };
+    updatePatient(patientId, {
+      consultation_notes: [note, ...(patient!.consultation_notes ?? [])],
+    });
+    setShowRecorder(false);
+  }
 
   const boolField = (v: boolean) => v ? "Yes" : "No";
 
@@ -125,10 +142,20 @@ function HistoryTab({ patientId }: { patientId: string }) {
     { label: "Previous MRI", value: patient.previous_mri },
   ];
 
+  const notes = patient.consultation_notes ?? [];
+
   return (
     <div className="space-y-4">
-      {/* Edit button */}
-      <div className="flex justify-end">
+      {/* New Assessment / Edit bar */}
+      <div className="flex items-center justify-between gap-3">
+        <Button
+          size="sm"
+          onClick={() => setShowRecorder((v) => !v)}
+          className="gap-1.5 bg-[var(--color-brand-primary)] text-white hover:bg-[var(--color-brand-primary-hover)] text-xs font-semibold"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {showRecorder ? "Cancel" : "New Assessment"}
+        </Button>
         <Link href={`/cdss/patient?edit=${patientId}`}>
           <Button size="sm" variant="outline" className="gap-1.5 border-[#E8E8E8] text-xs font-semibold">
             <Pencil className="h-3 w-3" />
@@ -136,6 +163,61 @@ function HistoryTab({ patientId }: { patientId: string }) {
           </Button>
         </Link>
       </div>
+
+      {/* Consultation Recorder (inline) */}
+      {showRecorder && (
+        <ConsultationRecorder patient={patient} onSave={handleSaveAssessment} />
+      )}
+
+      {/* Past Assessments timeline */}
+      {notes.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-xs font-bold text-[var(--color-brand-muted)] uppercase tracking-wide">
+            Consultation History ({notes.length})
+          </h3>
+          {notes.map((note, idx) => (
+            <Card key={note.id} className="bg-white border-[#E8E8E8]">
+              <CardHeader className="pb-2 flex flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="h-7 w-7 rounded-full bg-[var(--color-brand-primary)]/10 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-bold text-[var(--color-brand-primary)]">
+                      {notes.length - idx}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[var(--color-brand-midnight)]">
+                      Visit {notes.length - idx}
+                    </p>
+                    <p className="text-xs text-[var(--color-brand-muted)]">
+                      {new Date(note.date).toLocaleDateString("en-GB", {
+                        day: "numeric", month: "long", year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </div>
+                {idx === 0 && (
+                  <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-100 shrink-0">
+                    Most Recent
+                  </Badge>
+                )}
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-[var(--color-brand-midnight)] leading-relaxed whitespace-pre-wrap">
+                  {note.content}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Separator between assessments and baseline */}
+      {notes.length > 0 && <Separator />}
+
+      {/* Baseline clinical record */}
+      <h3 className="text-xs font-bold text-[var(--color-brand-muted)] uppercase tracking-wide">
+        Baseline Clinical Record
+      </h3>
 
       {/* Demographics & Menstrual */}
       <Card className="bg-white border-[#E8E8E8]">
@@ -228,23 +310,6 @@ function HistoryTab({ patientId }: { patientId: string }) {
           </Card>
         )}
       </div>
-
-      {/* Consultation Notes */}
-      {patient.consultation_notes && patient.consultation_notes.length > 0 && (
-        <Card className="bg-white border-[#E8E8E8]">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-[var(--color-brand-midnight)]">Consultation Notes</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {patient.consultation_notes.map((note) => (
-              <div key={note.id} className="rounded-lg bg-[var(--color-brand-smoke)] border border-[#E8E8E8] px-4 py-3">
-                <p className="text-xs text-[var(--color-brand-muted)] font-medium mb-1">{note.date}</p>
-                <p className="text-sm text-[var(--color-brand-midnight)] leading-relaxed whitespace-pre-wrap">{note.content}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

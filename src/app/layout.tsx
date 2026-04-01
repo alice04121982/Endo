@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { EntriesProvider } from "@/lib/entries-store";
 import { CdssProvider } from "@/lib/cdss-store";
+import { ClinicianProvider } from "@/lib/clinician-store";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -32,12 +33,14 @@ export default function RootLayout({
       <body className="bg-background text-foreground">
         <QueryProvider>
           <EntriesProvider>
-            <CdssProvider>
-              <TooltipProvider>
-                {children}
-                <Toaster />
-              </TooltipProvider>
-            </CdssProvider>
+            <ClinicianProvider>
+              <CdssProvider>
+                <TooltipProvider>
+                  {children}
+                  <Toaster />
+                </TooltipProvider>
+              </CdssProvider>
+            </ClinicianProvider>
           </EntriesProvider>
         </QueryProvider>
       </body>
