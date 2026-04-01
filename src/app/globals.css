@@ -8,9 +8,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Typography — Outfit for everything */
-  --font-sans: var(--font-outfit), "Outfit", ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-outfit), "Outfit", ui-sans-serif, system-ui, sans-serif;
+  /* Typography — rounded sans-serif stack */
+  --font-sans: "Nunito", "Varela Round", "Quicksand", ui-rounded, -apple-system, system-ui, sans-serif;
+  --font-display: "Nunito", "Varela Round", "Quicksand", ui-rounded, -apple-system, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
   --font-heading: var(--font-display);
 

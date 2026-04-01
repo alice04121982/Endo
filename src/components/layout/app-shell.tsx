@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
   Calendar,
@@ -14,6 +14,10 @@ import {
   Sparkles,
   Users,
   X,
+  Brain,
+  FlaskConical,
+  Mic,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -36,23 +40,63 @@ const mobileNav = [
   { name: "Community", href: "/research", icon: Users },
   { name: "Report", href: "/report", icon: FileText },
   { name: "Privacy", href: "/privacy", icon: Shield },
+  { name: "Settings", href: "/settings", icon: Settings },
+];
+
+/* ── Searchable items ── */
+const SEARCH_INDEX = [
+  { label: "Home", href: "/", keywords: "home dashboard overview stats", icon: Heart },
+  { label: "Track Symptoms", href: "/log", keywords: "log track record pain voice symptom entry", icon: Activity },
+  { label: "Voice Logger", href: "/log", keywords: "voice speak record microphone dictate", icon: Mic },
+  { label: "Timeline", href: "/timeline", keywords: "timeline chart history trend graph pain over time", icon: Calendar },
+  { label: "Insights", href: "/insights", keywords: "insights pathways correlations research biology", icon: Brain },
+  { label: "Pathway Correlations", href: "/insights", keywords: "cytokine inflammation VEGF nerve angiogenesis p2x3 central sensitization", icon: Brain },
+  { label: "Clinical Trials", href: "/insights", keywords: "trials clinical study recruiting non-hormonal treatment", icon: FlaskConical },
+  { label: "Non-Hormonal Treatments", href: "/insights", keywords: "non-hormonal treatment DCA dichloroacetate pelvic floor", icon: FlaskConical },
+  { label: "Learn & Connect", href: "/research", keywords: "research community support education learn articles", icon: Users },
+  { label: "Pain Science", href: "/research", keywords: "pain nerve lesion why hurt", icon: Sparkles },
+  { label: "Gut Health & Microbiome", href: "/research", keywords: "gut microbiome estrobolome probiotics diet bloating", icon: Sparkles },
+  { label: "Fatigue & Energy", href: "/research", keywords: "fatigue energy tired exhaustion inflammatory", icon: Sparkles },
+  { label: "Doctor Report", href: "/report", keywords: "report doctor provider appointment print share advocate", icon: FileText },
+  { label: "Red Flags & DIE Indicators", href: "/report", keywords: "red flag deep infiltrating endometriosis dyspareunia dyschezia", icon: FileText },
+  { label: "Privacy & Data", href: "/privacy", keywords: "privacy data control delete burn encryption security", icon: Shield },
+  { label: "Settings", href: "/settings", keywords: "settings profile cycle mode hormone diagnosis provider preferences", icon: Settings },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const searchResults = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (q.length < 2) return [];
+    return SEARCH_INDEX.filter(
+      (item) =>
+        item.label.toLowerCase().includes(q) ||
+        item.keywords.toLowerCase().includes(q)
+    ).slice(0, 6);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (searchOpen) {
       searchInputRef.current?.focus();
+    } else {
+      setSearchQuery("");
     }
   }, [searchOpen]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSearchOpen(false);
+      // Cmd/Ctrl+K to open search
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -106,7 +150,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {/* ── Search overlay — slides in from right ── */}
           <div
             className={cn(
-              "absolute top-0 bottom-0 right-0 flex items-center gap-2 px-3 lg:px-4 bg-[var(--color-brand-smoke)] transition-transform duration-250 ease-out",
+              "absolute top-0 bottom-0 right-0 flex items-center gap-2 px-3 lg:px-4 bg-[var(--color-brand-smoke)] transition-transform duration-250 ease-out z-10",
               searchOpen ? "translate-x-0" : "translate-x-[105%]"
             )}
             style={{ left: "120px" }}
@@ -115,9 +159,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <input
               ref={searchInputRef}
               type="search"
-              placeholder="Search symptoms, insights…"
+              placeholder="Search symptoms, insights… (⌘K)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 bg-transparent text-sm text-[var(--color-brand-midnight)] placeholder:text-[var(--color-brand-muted)] outline-none min-w-0"
-              onKeyDown={(e) => e.key === "Enter" && setSearchOpen(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && searchResults.length > 0) {
+                  router.push(searchResults[0].href);
+                  setSearchOpen(false);
+                }
+              }}
             />
             <Button
               variant="ghost"
@@ -128,6 +179,36 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <X className="h-4 w-4" />
             </Button>
           </div>
+
+          {/* ── Search results dropdown ── */}
+          {searchOpen && searchResults.length > 0 && (
+            <div className="absolute left-[120px] right-0 top-full bg-white rounded-b-2xl shadow-lg border border-[#D4DCE6]/40 z-20 max-h-80 overflow-y-auto">
+              {searchResults.map((result) => (
+                <Link
+                  key={`${result.label}-${result.href}`}
+                  href={result.href}
+                  onClick={() => setSearchOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-[var(--color-brand-smoke)] transition-colors first:rounded-t-none last:rounded-b-2xl"
+                >
+                  <result.icon className="h-4 w-4 shrink-0 text-[var(--color-brand-muted)]" />
+                  <span className="text-sm font-medium text-[var(--color-brand-midnight)]">
+                    {result.label}
+                  </span>
+                  <span className="ml-auto text-[10px] text-[var(--color-brand-muted)] uppercase font-semibold tracking-wide">
+                    {result.href.replace("/", "") || "home"}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+
+          {searchOpen && searchQuery.length >= 2 && searchResults.length === 0 && (
+            <div className="absolute left-[120px] right-0 top-full bg-white rounded-b-2xl shadow-lg border border-[#D4DCE6]/40 z-20 px-4 py-6 text-center">
+              <p className="text-sm text-[var(--color-brand-muted)]">
+                No results for &ldquo;{searchQuery}&rdquo;
+              </p>
+            </div>
+          )}
 
           {/* Right actions */}
           <div className="flex items-center gap-2">

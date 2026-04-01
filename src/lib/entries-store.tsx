@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { analyzeSymptomProfile, detectRedFlags } from "@/lib/engine/research-mapper";
 import { MOCK_ENTRIES, type MockSymptomEntry } from "@/lib/mock/data";
 import type { VoiceExtractedData } from "@/components/symptom-logger/voice-input";
+import type { SymptomFormData } from "@/components/symptom-logger/symptom-logger";
 import type { CyclePhase, GutBladderSymptom } from "@/lib/types/database";
 
 const STORAGE_KEY = "endo_logged_entries";
@@ -25,6 +26,7 @@ const STORAGE_KEY = "endo_logged_entries";
 interface EntriesContextValue {
   entries: MockSymptomEntry[];
   addVoiceEntry: (data: VoiceExtractedData) => MockSymptomEntry;
+  addFormEntry: (data: SymptomFormData) => MockSymptomEntry;
   todayEntry: MockSymptomEntry | null;
 }
 
@@ -98,6 +100,22 @@ export function EntriesProvider({ children }: { children: ReactNode }) {
     return entry;
   }, []);
 
+  const addFormEntry = useCallback((data: SymptomFormData): MockSymptomEntry => {
+    const entry: MockSymptomEntry = {
+      id: `form-${Date.now()}`,
+      ...data,
+    };
+
+    setLocalEntries((prev) => {
+      const without = prev.filter((e) => e.entry_date !== data.entry_date);
+      const updated = [entry, ...without];
+      saveToStorage(updated);
+      return updated;
+    });
+
+    return entry;
+  }, []);
+
   // Merge: local entries (newest first) + mock entries, deduped by date
   // Local entries take priority over mock entries for the same date
   const localDates = new Set(localEntries.map((e) => e.entry_date));
@@ -110,7 +128,7 @@ export function EntriesProvider({ children }: { children: ReactNode }) {
   const todayEntry = entries.find((e) => e.entry_date === today) ?? null;
 
   return (
-    <EntriesContext.Provider value={{ entries, addVoiceEntry, todayEntry }}>
+    <EntriesContext.Provider value={{ entries, addVoiceEntry, addFormEntry, todayEntry }}>
       {children}
     </EntriesContext.Provider>
   );

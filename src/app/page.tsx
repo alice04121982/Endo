@@ -11,9 +11,16 @@ import {
   Users,
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
 import { useMemo } from "react";
 import { useEntries } from "@/lib/entries-store";
+import {
+  IllustrationHero,
+  IllustrationYoga,
+  IllustrationMeditation,
+  IllustrationCommunity,
+  IllustrationNature,
+  categoryIllustrations,
+} from "@/components/illustrations";
 
 const categories = [
   {
@@ -25,7 +32,7 @@ const categories = [
     href: "/insights",
     variant: "neutral" as const,
     icon: Heart,
-    image: "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?w=640&q=80&auto=format&fit=crop",
+    Illustration: categoryIllustrations.journey,
   },
   {
     tag: "Pain management",
@@ -36,7 +43,7 @@ const categories = [
     href: "/insights",
     variant: "accent" as const,
     icon: Sparkles,
-    image: "https://images.unsplash.com/photo-1545205597-3d9d02c29597?w=640&q=80&auto=format&fit=crop",
+    Illustration: categoryIllustrations.pain,
   },
   {
     tag: "Community",
@@ -47,7 +54,7 @@ const categories = [
     href: "/research",
     variant: "warm" as const,
     icon: Users,
-    image: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=640&q=80&auto=format&fit=crop",
+    Illustration: categoryIllustrations.community,
   },
   {
     tag: "Track symptoms",
@@ -58,7 +65,7 @@ const categories = [
     href: "/log",
     variant: "neutral" as const,
     icon: Activity,
-    image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=640&q=80&auto=format&fit=crop",
+    Illustration: categoryIllustrations.tracking,
   },
   {
     tag: "Doctor visits",
@@ -69,7 +76,7 @@ const categories = [
     href: "/report",
     variant: "warm" as const,
     icon: FileText,
-    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=640&q=80&auto=format&fit=crop",
+    Illustration: categoryIllustrations.report,
   },
   {
     tag: "Privacy first",
@@ -80,7 +87,7 @@ const categories = [
     href: "/privacy",
     variant: "neutral" as const,
     icon: Shield,
-    image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=640&q=80&auto=format&fit=crop",
+    Illustration: categoryIllustrations.privacy,
   },
 ];
 
@@ -167,35 +174,28 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Right — hero image (desktop only) */}
+            {/* Right — hero illustration (desktop only) */}
             <div className="hidden lg:block">
               <div className="relative h-[560px] rounded-[24px] overflow-hidden">
-                <Image
-                  src="https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=900&q=80&auto=format&fit=crop"
-                  alt="Woman outdoors in nature"
-                  fill
-                  className="object-cover object-top"
-                  sizes="(min-width: 1024px) 50vw, 0px"
-                  priority
-                />
+                <IllustrationHero className="w-full h-full" />
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Photo strip ── */}
+      {/* ── Illustration strip ── */}
       <section className="py-8 lg:py-12">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {[
-              { src: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80&auto=format&fit=crop", alt: "Yoga outdoors at sunrise", aspect: "aspect-[3/4]" },
-              { src: "https://images.unsplash.com/photo-1552693673-1bf958298935?w=600&q=80&auto=format&fit=crop", alt: "Woman meditating in nature", aspect: "aspect-[3/4]" },
-              { src: "https://images.unsplash.com/photo-1521566652839-697aa473761a?w=600&q=80&auto=format&fit=crop", alt: "Women friends outdoors", aspect: "aspect-[3/4]" },
-              { src: "https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?w=600&q=80&auto=format&fit=crop", alt: "Woman walking in nature", aspect: "aspect-[3/4]" },
-            ].map((photo) => (
-              <div key={photo.src} className={`relative ${photo.aspect} rounded-[20px] overflow-hidden`}>
-                <Image src={photo.src} alt={photo.alt} fill className="object-cover" sizes="(min-width: 1024px) 25vw, 50vw" />
+              { Component: IllustrationYoga, key: "yoga" },
+              { Component: IllustrationMeditation, key: "meditation" },
+              { Component: IllustrationCommunity, key: "community" },
+              { Component: IllustrationNature, key: "nature" },
+            ].map((item) => (
+              <div key={item.key} className="aspect-[3/4] rounded-[20px] overflow-hidden">
+                <item.Component className="w-full h-full" />
               </div>
             ))}
           </div>
@@ -261,15 +261,9 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Card image bottom half */}
+                {/* Card illustration bottom half */}
                 <div className="relative h-40 md:h-48 overflow-hidden">
-                  <Image
-                    src={cat.image}
-                    alt=""
-                    fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-105"
-                    sizes="320px"
-                  />
+                  <cat.Illustration className="w-full h-full" />
                 </div>
               </Link>
             ))}

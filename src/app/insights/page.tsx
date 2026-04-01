@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import Image from "next/image";
 import {
   Brain,
   FlaskConical,
@@ -15,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { MOCK_ENTRIES, MOCK_TRIALS } from "@/lib/mock/data";
 import { getNonHormonalPathways } from "@/lib/engine/research-mapper";
+import { IllustrationInsightsHeader } from "@/components/illustrations";
 
 export default function InsightsPage() {
   const latestEntry = MOCK_ENTRIES[MOCK_ENTRIES.length - 1];
@@ -33,18 +33,10 @@ export default function InsightsPage() {
 
   return (
     <div className="p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
-      {/* Header with lifestyle image */}
+      {/* Header with illustration */}
       <div className="rounded-[24px] overflow-hidden relative">
         <div className="relative h-48 lg:h-64">
-          <Image
-            src="https://images.unsplash.com/photo-1521566652839-697aa473761a?w=1200&q=80&auto=format&fit=crop"
-            alt="Woman reviewing health insights"
-            fill
-            className="object-cover object-top"
-            sizes="(min-width: 1024px) 80vw, 100vw"
-            priority
-          />
-          <div className="absolute inset-0 bg-[var(--color-brand-midnight)]/60" />
+          <IllustrationInsightsHeader className="absolute inset-0 w-full h-full" />
           <div className="absolute inset-0 flex flex-col justify-end p-6 lg:p-8">
             <h1 className="text-2xl font-bold tracking-tight text-white">Your Endo Insights</h1>
             <p className="mt-1 text-sm text-white/70 max-w-md">
