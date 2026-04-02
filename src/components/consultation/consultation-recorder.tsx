@@ -72,13 +72,6 @@ const HISTORY_SECTIONS: {
     hint: "Relevant family history, endometriosis, gynaecological conditions",
   },
   {
-    key: "sh",
-    label: "Social History",
-    abbr: "SH",
-    color: "border-l-orange-400",
-    hint: "Occupation, relationships, smoking, alcohol, impact on work",
-  },
-  {
     key: "allergies",
     label: "Allergies",
     abbr: "AL",

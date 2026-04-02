@@ -53,25 +53,26 @@ export const DEMO_PATIENTS: PatientHistory[] = [
         id: "note-demo-001",
         date: "2026-01-08",
         clinician: "Dr. Sarah Johnson",
-        content: `SOAP NOTE — 8 January 2026
-Summary: 28-year-old presenting with 3-year history of severe dysmenorrhoea and chronic pelvic pain, mother has confirmed endometriosis.
+        content: `CONSULTATION HISTORY — 8 January 2026
+Summary: 28-year-old presenting with 3-year history of severe dysmenorrhoea and chronic pelvic pain. High clinical suspicion for endometriosis meeting NICE NG73 criteria. Mother has confirmed endometriosis.
 
-SUBJECTIVE
-Patient reports severe period pain scoring 8/10, present since age 14. Describes cramping, lower abdominal pain radiating to back and thighs, lasting 4–5 days. Also reports deep dyspareunia and chronic pelvic pain throughout the month. Bowel symptoms worsen perimenstrually. Concerned about fertility. Family history: mother diagnosed with endometriosis stage III aged 32.
+CO — Complains Of
+Severe period pain and chronic pelvic pain. Concerned about fertility.
 
-OBJECTIVE
-Pelvic examination: mild uterine tenderness on bimanual. No adnexal masses palpable. Transvaginal ultrasound (Jan 2026): no obvious endometrioma, possible adenomyosis features. CA-125 pending.
+HPC — History of Present Complaint
+3-year history of severe dysmenorrhoea scoring 8/10 on VAS, onset age 14. Describes cramping lower abdominal pain radiating to back and thighs, lasting 4–5 days per cycle. Reports deep dyspareunia and chronic pelvic pain throughout the month. Bowel symptoms worsen perimenstrually (loose stool, urgency). Symptoms significantly impact daily functioning and quality of life. Fertility concerns prominent — nulliparous, wishes to conceive in the next 2 years.
 
-ASSESSMENT
-High clinical suspicion for endometriosis meeting multiple NICE NG73 criteria: severe dysmenorrhoea, dyspareunia, chronic pelvic pain, cyclical bowel symptoms, positive family history. Risk stratification: HIGH. Differential includes adenomyosis.
+PMH — Past Medical History
+No previous laparoscopy or pelvic surgery. Transvaginal ultrasound January 2026: no obvious endometrioma, possible adenomyosis features noted. No previous MRI. No significant medical history. No hospitalisations.
 
-PLAN
-1. Request CA-125, CRP, HE4 bloods
-2. Refer for diagnostic laparoscopy — urgent pathway
-3. Continue mefenamic acid for pain management
-4. Discuss Mirena IUS as bridging therapy pending diagnosis
-5. Fertility counselling referral given patient's concerns
-6. Follow up in 6 weeks with results`,
+FH — Family History
+Mother diagnosed with endometriosis stage III aged 32. No other relevant family history of gynaecological malignancy or autoimmune conditions reported.
+
+Allergies
+NKDA — no known drug allergies.
+
+Drugs / Current Medications
+Mefenamic acid 500mg TDS (days 1–5 of cycle). No hormonal contraception. No supplements reported.`,
       },
     ],
   },
@@ -114,47 +115,51 @@ PLAN
         id: "note-demo-002a",
         date: "2025-04-15",
         clinician: "Dr. Sarah Johnson",
-        content: `SOAP NOTE — 15 April 2025
-Summary: New patient with confirmed stage II endometriosis post-laparoscopy, currently on norethisterone with partial symptom control.
+        content: `CONSULTATION HISTORY — 15 April 2025
+Summary: New patient with confirmed stage II endometriosis post-laparoscopy. Ongoing pain despite norethisterone. Fertility-preserving management required. CA-125 elevated at 68 U/mL.
 
-SUBJECTIVE
-34-year-old with confirmed stage II endometriosis diagnosed via laparoscopy in 2023. Reports ongoing dysmenorrhoea 7/10, deep dyspareunia, and dyschezia particularly perimenstrually. Currently taking norethisterone with partial response. One miscarriage 2024, keen to conceive. Hypothyroidism well-controlled on levothyroxine.
+CO — Complains Of
+Ongoing pelvic pain and deep dyspareunia despite hormonal treatment. Wishes to discuss fertility options.
 
-OBJECTIVE
-MRI pelvis (March 2025): bilateral ovarian endometriomas <2cm, no deep infiltrating endometriosis identified. TSH within normal range. CA-125 68 U/mL (elevated).
+HPC — History of Present Complaint
+Stage II endometriosis confirmed at diagnostic laparoscopy in 2023. Since diagnosis: persistent dysmenorrhoea 7/10, deep dyspareunia limiting sexual activity, and dyschezia perimenstrually. Norethisterone commenced post-laparoscopy with partial pain response only. One miscarriage in 2024. Keen to conceive — requests fertility referral. Fatigue significant throughout cycle.
 
-ASSESSMENT
-Stage II endometriosis with confirmed ovarian involvement. Symptom burden moderate-high despite hormonal treatment. Fertility planning complicates treatment options — long-term GnRH agonist not appropriate given conception goals.
+PMH — Past Medical History
+Diagnostic laparoscopy 2023 — stage II endometriosis confirmed, excision performed. Miscarriage 2024 (spontaneous, 8 weeks). Hypothyroidism diagnosed 2019, stable on levothyroxine. MRI pelvis March 2025: bilateral ovarian endometriomas <2cm, no deep infiltrating endometriosis identified.
 
-PLAN
-1. Refer to fertility specialist — IVF pathway discussion given endometrioma presence
-2. Continue norethisterone short-term for symptom management
-3. Repeat CA-125 in 3 months
-4. Discuss surgical options (cystectomy) vs expectant management for endometriomas
-5. Dietitian referral for anti-inflammatory dietary advice`,
+FH — Family History
+Not reported.
+
+Allergies
+NKDA — no known drug allergies.
+
+Drugs / Current Medications
+Norethisterone 5mg BD. Levothyroxine 50mcg OD. Naproxen 500mg BD PRN (period pain).`,
       },
       {
         id: "note-demo-002b",
         date: "2025-10-22",
         clinician: "Dr. Sarah Johnson",
-        content: `SOAP NOTE — 22 October 2025
-Summary: Follow-up visit — endometriomas stable, fertility treatment deferred, trialling dienogest.
+        content: `CONSULTATION HISTORY — 22 October 2025
+Summary: Follow-up — endometriomas stable on repeat USS. CA-125 improved to 48 U/mL. Switching from norethisterone to dienogest. IVF deferred 6 months.
 
-SUBJECTIVE
-Patient reports slight improvement in pelvic pain on norethisterone but ongoing dyspareunia impacting quality of life. Has decided to defer IVF by 6 months. Fatigue remains significant. No new symptoms.
+CO — Complains Of
+Ongoing dyspareunia and pelvic pain. Persistent fatigue. Wishes to defer IVF.
 
-OBJECTIVE
-Repeat ultrasound: endometriomas unchanged at <2cm bilaterally. CA-125 improved to 48 U/mL. Weight stable. BP normal.
+HPC — History of Present Complaint
+Modest improvement in pelvic pain on norethisterone but dyspareunia remains significant, impacting quality of life and relationship. Fatigue continues throughout cycle. No new symptoms. Patient has decided to defer IVF by 6 months for personal reasons. CA-125 improved from 68 to 48 U/mL suggesting some treatment response.
 
-ASSESSMENT
-Stable disease. Modest response to current progestogen. Changing to dienogest (Visanne) given evidence for endometrioma stabilisation and pain control.
+PMH — Past Medical History
+Stage II endometriosis — laparoscopy 2023. Miscarriage 2024. Hypothyroidism (stable). Repeat pelvic ultrasound October 2025: endometriomas unchanged bilaterally <2cm.
 
-PLAN
-1. Switch to dienogest 2mg daily
-2. Repeat pelvic ultrasound in 6 months
-3. Review IVF timing at next appointment
-4. Prescribe topical lidocaine gel for dyspareunia — trial for 8 weeks
-5. Return in 3 months or sooner if symptoms worsen`,
+FH — Family History
+Not reported.
+
+Allergies
+NKDA — no known drug allergies.
+
+Drugs / Current Medications
+Switching: norethisterone 5mg BD → dienogest (Visanne) 2mg OD. Levothyroxine 50mcg OD. Topical lidocaine 5% gel PRN for dyspareunia (new prescription, 8-week trial).`,
       },
     ],
   },
@@ -194,23 +199,26 @@ PLAN
         id: "note-demo-003a",
         date: "2024-09-03",
         clinician: "Dr. Sarah Johnson",
-        content: `SOAP NOTE — 3 September 2024
-Summary: Post-laparoscopy monitoring visit. Stage I endometriosis — excellent response to Mirena IUS, now largely asymptomatic.
+        content: `CONSULTATION HISTORY — 3 September 2024
+Summary: Post-laparoscopy review at 6 months. Stage I endometriosis — excellent response to surgical excision and Mirena IUS. Now largely asymptomatic. CA-125 normalised.
 
-SUBJECTIVE
-Patient underwent diagnostic and excision laparoscopy for stage I endometriosis in March 2024. Reports significant improvement in dysmenorrhoea since Mirena IUS insertion (post-op). Currently rating period pain as 3-4/10 compared to 9/10 pre-treatment. No dyspareunia, no bowel symptoms. Quality of life markedly improved.
+CO — Complains Of
+Routine post-operative review. Patient reports she is doing well and symptoms have markedly improved.
 
-OBJECTIVE
-Mirena IUS confirmed in situ on ultrasound. Minimal bleeding reported. Pelvic examination: no tenderness. CA-125 12 U/mL (within normal range).
+HPC — History of Present Complaint
+Diagnostic and excision laparoscopy for stage I endometriosis performed March 2024. Mirena IUS inserted at time of surgery. Pre-operatively: dysmenorrhoea 9/10, cyclical bowel symptoms, significant impact on work and quality of life. Post-operatively: dysmenorrhoea now 3–4/10, manageable with paracetamol alone. No dyspareunia. No bowel symptoms. Periods lighter and shorter. Quality of life markedly improved. No fertility concerns at present.
 
-ASSESSMENT
-Excellent treatment response to combined surgical excision and Mirena IUS. Stage I disease — low recurrence risk at 6 months. Continue current management.
+PMH — Past Medical History
+Diagnostic and excision laparoscopy March 2024 — stage I endometriosis confirmed and excised. Mirena IUS in situ (March 2024). No other relevant medical history. Pelvic USS September 2024: Mirena confirmed in situ, no endometrioma.
 
-PLAN
-1. Continue Mirena IUS for 5-year duration
-2. Annual review with USS
-3. Advise patient to return promptly if symptoms recur — early intervention shown to prevent progression
-4. Patient given written information on endometriosis recurrence signs`,
+FH — Family History
+Not reported.
+
+Allergies
+NKDA — no known drug allergies.
+
+Drugs / Current Medications
+Mirena IUS (levonorgestrel 52mg, inserted March 2024 — valid 5 years). Paracetamol 1g QDS PRN.`,
       },
     ],
   },
@@ -254,26 +262,26 @@ PLAN
         id: "note-demo-004",
         date: "2026-02-14",
         clinician: "Dr. Sarah Johnson",
-        content: `SOAP NOTE — 14 February 2026
-Summary: Urgent GP referral. 26-year-old with 7-year symptom history, very high risk profile, multiple treatment failures. Warrants urgent laparoscopy.
+        content: `CONSULTATION HISTORY — 14 February 2026
+Summary: Urgent GP referral. 26-year-old with 7-year history of severe, multi-domain endometriosis symptoms. Very high risk profile, multiple treatment failures, haematological compromise. Urgent laparoscopy warranted.
 
-SUBJECTIVE
-GP referral — 26-year-old with 7-year history of severe dysmenorrhoea (9/10), chronic pelvic pain, deep dyspareunia, dyschezia, dysuria, and cyclical bladder symptoms. All symptoms significantly impact daily functioning; has missed work approximately 3 days/month. Two previous GP-trial treatments (COCP, NSAIDs) with no meaningful benefit. Currently on tramadol. Maternal aunt has confirmed endometriosis. Concerned about fertility.
+CO — Complains Of
+Severe period pain, chronic pelvic pain, pain during sex, and bowel and bladder symptoms. Concerned about fertility. GP referred urgently.
 
-OBJECTIVE
-Pelvic USS (GP, Jan 2026): bulky uterus with heterogeneous myometrium — possible adenomyosis. No discrete endometrioma identified. Haemoglobin 94 g/L (low). CA-125 112 U/mL (significantly elevated). CRP 14 mg/L (mildly elevated). Iron deficiency confirmed on bloods.
+HPC — History of Present Complaint
+7-year history of severe dysmenorrhoea scoring 9/10 on VAS, onset aged 12. Symptoms span all domains: chronic pelvic pain (continuous), deep dyspareunia, dyschezia, dysuria, cyclical bowel symptoms (urgency, rectal pain), and cyclical bladder symptoms (frequency, haematuria perimenstrually). Symptoms have a major impact on daily life — missing approximately 3 days of work per month. Heavy menstrual bleeding with clots. Two previous GP-initiated treatments (COCP 24 months — no change; ibuprofen — no change) and co-codamol (mild improvement). Currently taking tramadol with limited efficacy. Fertility concerns significant — nulliparous, hopes to conceive.
 
-ASSESSMENT
-Very high clinical suspicion for endometriosis — NICE NG73 criteria met across all symptom domains. CA-125 significantly elevated. Risk stratification: VERY HIGH. Haematological compromise (Hb 94) secondary to heavy menstrual bleeding. Possible concomitant adenomyosis. Multiple treatment failures. Urgent surgical assessment warranted.
+PMH — Past Medical History
+No previous laparoscopy or MRI. Pelvic USS (GP, January 2026): bulky uterus with heterogeneous myometrium — possible adenomyosis. No discrete endometrioma identified. Iron deficiency anaemia confirmed on bloods (Hb 94 g/L, ferritin 8 mcg/L). Anxiety disorder — under GP care. No surgical history.
 
-PLAN
-1. URGENT laparoscopy referral — 2-week wait pathway where possible
-2. IV iron infusion for anaemia prior to surgery
-3. Increase analgesic ladder: add naproxen + PPI cover, reduce tramadol reliance
-4. MRI pelvis — rule out deep infiltrating endometriosis prior to surgery
-5. Pre-surgical multidisciplinary discussion given complex presentation
-6. Fertility counselling — egg freezing discussion given likely need for surgical intervention
-7. Anxiety: refer to specialist perinatal/gynaecological psychology service`,
+FH — Family History
+Maternal aunt with confirmed endometriosis. No other relevant family history reported.
+
+Allergies
+NKDA — no known drug allergies.
+
+Drugs / Current Medications
+Tramadol 50mg QDS PRN. Tranexamic acid 1g QDS (days 1–4 of period). Sertraline 50mg OD (anxiety). Ferrous sulfate 200mg BD (iron deficiency anaemia — GP prescribed).`,
       },
     ],
   },

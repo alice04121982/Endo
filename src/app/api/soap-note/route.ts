@@ -28,11 +28,6 @@ const consultationSchema = z.object({
     .describe(
       "FH — Family History. Relevant family history, particularly endometriosis, other gynaecological conditions, autoimmune conditions, cancers. Write 'Not reported' if not discussed."
     ),
-  sh: z
-    .string()
-    .describe(
-      "SH — Social History. Occupation, relationship status, sexual history (if relevant and discussed), smoking status, alcohol intake, recreational drug use, living situation, impact of symptoms on work and relationships. Write 'Not reported' if not discussed."
-    ),
   allergies: z
     .string()
     .describe(
