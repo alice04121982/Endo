@@ -42,7 +42,7 @@ interface CdssContextValue {
   getPatientBiomarkers: (patientId: string) => BiomarkerValue[];
   getRiskAssessment: (patientId: string) => RiskStratification | null;
   symptomLogs: SymptomLog[];
-  addSymptomLog: (patientId: string, log: Omit<SymptomLog, "id" | "patient_id" | "logged_at">) => SymptomLog;
+  addSymptomLog: (patientId: string, log: Omit<SymptomLog, "id" | "patient_id" | "logged_at"> & { logged_at?: string }) => SymptomLog;
   getPatientSymptomLogs: (patientId: string) => SymptomLog[];
 }
 
@@ -179,12 +179,12 @@ export function CdssProvider({ children }: { children: ReactNode }) {
   );
 
   const addSymptomLog = useCallback(
-    (patientId: string, log: Omit<SymptomLog, "id" | "patient_id" | "logged_at">): SymptomLog => {
+    (patientId: string, log: Omit<SymptomLog, "id" | "patient_id" | "logged_at"> & { logged_at?: string }): SymptomLog => {
       const entry: SymptomLog = {
         ...log,
         id: `sl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         patient_id: patientId,
-        logged_at: new Date().toISOString(),
+        logged_at: log.logged_at ?? new Date().toISOString(),
       };
       setSymptomLogs((prev) => {
         const next = [entry, ...prev];

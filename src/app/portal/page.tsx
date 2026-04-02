@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { useCdss } from "@/lib/cdss-store";
 import type { BleedingHeaviness, CyclePhase } from "@/lib/types/cdss";
 import type { VoiceExtractedData } from "@/app/api/voice-parse/route";
+import { ConnectedApps } from "./connected-apps";
+import { EducationSection } from "./education-section";
 
 // ── Web Speech API hook ──────────────────────────────────────────────────────
 
@@ -359,6 +361,11 @@ export default function PatientPortalPage() {
         </Card>
       )}
 
+      {/* Connected apps */}
+      <div className="mb-4">
+        <ConnectedApps patientId={selectedPatientId || patients[0]?.id || ""} />
+      </div>
+
       {/* ── Voice section ── */}
       <Card className="bg-white border-[#E8E8E8] mb-4 overflow-hidden">
         <CardContent className="py-6 px-5">
@@ -613,6 +620,11 @@ export default function PatientPortalPage() {
       <p className="mt-6 mb-2 text-xs text-[var(--color-brand-muted)] text-center leading-relaxed">
         Your responses are stored securely and shared only with your clinical team.
       </p>
+
+      {/* Education section */}
+      <div className="mt-8">
+        <EducationSection />
+      </div>
     </div>
   );
 }
