@@ -4,11 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Plus, Settings, Stethoscope } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useCdss } from "@/lib/cdss-store";
 import { useClinician, ROLE_LABELS } from "@/lib/clinician-store";
-import type { RiskLevel } from "@/lib/types/cdss";
 
 const navItems = [
   {
@@ -31,20 +28,6 @@ const navItems = [
     isActive: (p: string) => p === "/cdss/research",
   },
 ];
-
-const riskBadgeStyles: Record<RiskLevel, string> = {
-  low: "bg-emerald-100 text-emerald-700",
-  moderate: "bg-amber-100 text-amber-700",
-  high: "bg-orange-100 text-orange-700",
-  very_high: "bg-red-100 text-red-700",
-};
-
-const riskLabels: Record<RiskLevel, string> = {
-  low: "Low",
-  moderate: "Mod",
-  high: "High",
-  very_high: "V.High",
-};
 
 function ClinicianMenu() {
   const { activeClinician, clinicians, isAdmin, switchClinician } = useClinician();
@@ -164,8 +147,6 @@ function ClinicianMenu() {
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { currentPatient, getRiskAssessment } = useCdss();
-  const risk = currentPatient ? getRiskAssessment(currentPatient.id) : null;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F0F4F8]">
@@ -205,26 +186,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           {/* Right side */}
           <div className="ml-auto flex items-center gap-3">
-            {/* Active patient chip */}
-            {currentPatient && (
-              <div className="hidden sm:flex items-center gap-2 rounded-full bg-[#F0F4F8] border border-[#E8E8E8] px-3 py-1.5">
-                <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">
-                  Patient:
-                </span>
-                <span className="text-sm font-semibold text-[#111827]">
-                  {currentPatient.name}
-                </span>
-                {risk && (
-                  <Badge
-                    variant="secondary"
-                    className={`text-xs py-0 ${riskBadgeStyles[risk.overall_risk]}`}
-                  >
-                    {riskLabels[risk.overall_risk]} {risk.score}
-                  </Badge>
-                )}
-              </div>
-            )}
-
             {/* Patient portal link */}
             <Link
               href="/portal"
