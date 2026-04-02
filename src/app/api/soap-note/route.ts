@@ -3,49 +3,66 @@ import { gateway } from "@ai-sdk/gateway";
 import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 
-const soapSchema = z.object({
-  subjective: z
+/**
+ * Extracts structured UK clinical history sections from a consultation transcript.
+ * Follows standard UK gynaecology history-taking format.
+ */
+const consultationSchema = z.object({
+  co: z
     .string()
     .describe(
-      "Patient's own reported symptoms, history, and concerns as described during the consultation. Include chief complaint, symptom onset, severity, character, and relevant history as reported by the patient."
+      "CO — Complains Of. The patient's presenting complaint in their own words. What has brought them to this appointment today."
     ),
-  objective: z
+  hpc: z
     .string()
     .describe(
-      "Clinician's observable findings: examination findings, vital signs, test results discussed, and any measurable data mentioned during the consultation."
+      "HPC — History of Present Complaint. Full history of the presenting symptoms: onset, duration, character, severity (including VAS pain scores if mentioned), relieving/aggravating factors, associated symptoms, cyclical patterns, impact on daily life and quality of life."
     ),
-  assessment: z
+  pmh: z
     .string()
     .describe(
-      "Clinical impression and working diagnosis. Interpretation of findings, differential diagnoses considered, risk stratification, and clinical reasoning."
+      "PMH — Past Medical History. Previous medical conditions, surgical history (including any laparoscopy, hysteroscopy, or other gynaecological procedures), previous investigations (ultrasound, MRI, laparoscopy findings), hospitalisations. Write 'Nil significant' if none mentioned."
     ),
-  plan: z
+  fh: z
     .string()
     .describe(
-      "Management plan: investigations ordered, treatments prescribed or changed, referrals made, safety netting advice, follow-up arrangements, and patient education discussed."
+      "FH — Family History. Relevant family history, particularly endometriosis, other gynaecological conditions, autoimmune conditions, cancers. Write 'Not reported' if not discussed."
+    ),
+  sh: z
+    .string()
+    .describe(
+      "SH — Social History. Occupation, relationship status, sexual history (if relevant and discussed), smoking status, alcohol intake, recreational drug use, living situation, impact of symptoms on work and relationships. Write 'Not reported' if not discussed."
+    ),
+  allergies: z
+    .string()
+    .describe(
+      "Allergies. Any known drug or food allergies and the nature of the reaction. Write 'NKDA' (No Known Drug Allergies) if stated, or 'Not reported' if not discussed."
+    ),
+  drugs: z
+    .string()
+    .describe(
+      "Drugs / Current Medications. All current medications including dose and frequency where mentioned. Include contraception, hormonal treatments, analgesics, supplements. Write 'None reported' if not discussed."
     ),
   summary: z
     .string()
     .describe(
-      "One to two sentence executive summary of this consultation for quick reference."
+      "One to two sentence executive summary of this consultation for the record header."
     ),
 });
 
-export type SoapNote = z.infer<typeof soapSchema>;
+export type SoapNote = z.infer<typeof consultationSchema>;
 
 const SYSTEM_PROMPT = `You are a specialist clinical documentation assistant for an endometriosis CDSS (Clinical Decision Support System).
 
-Your task is to generate a structured SOAP consultation note from a clinical consultation transcript.
+Your task is to extract structured clinical history from a UK gynaecology consultation transcript, following the standard UK clinical history-taking format.
 
 Guidelines:
 - Write in professional clinical language appropriate for specialist gynaecology / endometriosis care
-- Subjective: Use the patient's perspective — what they reported, how they described symptoms, their concerns
-- Objective: Focus on measurable/observable clinical findings mentioned (examination, results, scores)
-- Assessment: Synthesise findings into clinical impression; reference relevant NICE NG73 criteria if applicable
-- Plan: Be specific and actionable; include investigations, treatments, referrals, follow-up, safety netting
-- Summary: Concise 1-2 sentence overview for the record header
-- If a section was not clearly covered in the consultation, write a brief professional note acknowledging this
-- Do not fabricate clinical details not mentioned in the transcript`;
+- Extract only what was actually said — do not fabricate clinical details not in the transcript
+- If a section was not covered, state clearly: "Not discussed in this consultation" or "NKDA" / "Nil significant" as appropriate
+- For HPC, capture severity using VAS scores if mentioned, and note cyclical patterns which are clinically significant in endometriosis
+- For Drugs, use generic UK medication names where possible
+- Reference relevant NICE NG73 criteria in the summary if applicable`;
 
 export async function POST(request: NextRequest) {
   if (!process.env.VERCEL_OIDC_TOKEN) {
@@ -77,16 +94,16 @@ export async function POST(request: NextRequest) {
   try {
     const result = await generateText({
       model: gateway("anthropic/claude-sonnet-4.6"),
-      output: Output.object({ schema: soapSchema }),
+      output: Output.object({ schema: consultationSchema }),
       system: SYSTEM_PROMPT,
-      prompt: `Generate a SOAP note from the following consultation transcript.${contextSection}\n\nCONSULTATION TRANSCRIPT:\n"${transcript}"`,
+      prompt: `Extract the clinical history sections from the following consultation transcript.${contextSection}\n\nCONSULTATION TRANSCRIPT:\n"${transcript}"`,
     });
 
     return NextResponse.json(result.experimental_output);
   } catch (err) {
-    console.error("[soap-note] Error:", err);
+    console.error("[consultation-note] Error:", err);
     return NextResponse.json(
-      { error: "Failed to generate SOAP note" },
+      { error: "Failed to generate consultation note" },
       { status: 500 }
     );
   }
