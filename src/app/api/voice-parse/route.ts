@@ -57,6 +57,12 @@ const extractedSchema = z.object({
   has_painful_intercourse: z.boolean().describe("Pain during sex/intercourse mentioned"),
   has_bowel_symptoms: z.boolean().describe("Any bowel symptoms mentioned"),
   has_bladder_symptoms: z.boolean().describe("Any bladder symptoms mentioned"),
+  endo_belly_severity: z
+    .number().min(0).max(10).nullable()
+    .describe("Endo belly / abdominal bloating severity 0-10, null if not mentioned"),
+  sleep_quality: z
+    .number().min(1).max(5).nullable()
+    .describe("Sleep quality 1–5 (1=terrible, 5=excellent), null if not mentioned"),
   notes: z
     .string().nullable()
     .describe("Any other relevant details as a short note, summarising what wasn't captured in structured fields"),

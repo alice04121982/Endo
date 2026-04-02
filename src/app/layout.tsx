@@ -6,6 +6,7 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { EntriesProvider } from "@/lib/entries-store";
 import { CdssProvider } from "@/lib/cdss-store";
 import { ClinicianProvider } from "@/lib/clinician-store";
+import { ComplianceProvider } from "@/lib/compliance-store";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -34,12 +35,14 @@ export default function RootLayout({
         <QueryProvider>
           <EntriesProvider>
             <ClinicianProvider>
+              <ComplianceProvider>
               <CdssProvider>
                 <TooltipProvider>
                   {children}
                   <Toaster />
                 </TooltipProvider>
               </CdssProvider>
+              </ComplianceProvider>
             </ClinicianProvider>
           </EntriesProvider>
         </QueryProvider>

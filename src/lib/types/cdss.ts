@@ -44,6 +44,37 @@ export const BIOMARKER_META: Record<BiomarkerType, BiomarkerMeta> = {
 
 export type BiomarkerFlag = "normal" | "elevated" | "low" | "critical";
 
+// ── Lab notifications ──
+
+export interface LabNotification {
+  id: string;
+  patient_id: string;
+  patient_name: string;
+  marker: BiomarkerType;
+  marker_label: string;
+  value: number;
+  unit: string;
+  flag: "elevated" | "low" | "critical";
+  date_collected: string;
+  read: boolean;
+  created_at: string;
+}
+
+export type BiomarkerSource =
+  | "nhs_api"
+  | "hospital_lab"
+  | "gp_referral"
+  | "private_lab"
+  | "manual";
+
+export const BIOMARKER_SOURCE_LABELS: Record<BiomarkerSource, string> = {
+  nhs_api:      "NHS API",
+  hospital_lab: "Hospital Lab",
+  gp_referral:  "GP Referral",
+  private_lab:  "Private Lab",
+  manual:       "Manual entry",
+};
+
 export interface BiomarkerValue {
   id: string;
   patient_id: string;
@@ -51,6 +82,10 @@ export interface BiomarkerValue {
   value: number;
   date_collected: string; // ISO date
   flag: BiomarkerFlag;
+  // Provenance
+  source?: BiomarkerSource;
+  ordered_by?: string;    // clinician name who ordered the test
+  cycle_day?: number | null; // day of menstrual cycle when drawn
 }
 
 // ── Patient clinical history ──

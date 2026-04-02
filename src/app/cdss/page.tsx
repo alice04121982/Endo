@@ -4,8 +4,6 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
-  ArrowRight,
-  BookOpen,
   Plus,
   Search,
   UserCircle,
@@ -31,58 +29,6 @@ const riskLabels: Record<RiskLevel, string> = {
   very_high: "Very High",
 };
 
-const RESEARCH_HIGHLIGHTS = [
-  {
-    id: 1,
-    title: "Endometriosis: pathogenesis, diagnosis and treatment (ESHRE 2024 Guidelines)",
-    journal: "Human Reproduction Open",
-    year: "2024",
-    tag: "Guidelines",
-    summary:
-      "Updated ESHRE recommendations covering laparoscopic diagnosis, hormonal suppression, and fertility-sparing management. Emphasises shared decision-making and multi-disciplinary team approach.",
-    href: "https://academic.oup.com/hropen",
-  },
-  {
-    id: 2,
-    title: "Elagolix for moderate-to-severe endometriosis pain — phase III extension",
-    journal: "New England Journal of Medicine",
-    year: "2023",
-    tag: "RCT",
-    summary:
-      "24-month follow-up confirms sustained reduction in dysmenorrhoea and non-menstrual pelvic pain with GnRH antagonist therapy. Bone density monitoring protocol updated.",
-    href: "#",
-  },
-  {
-    id: 3,
-    title: "CA-125 and combined biomarker panels for non-invasive diagnosis",
-    journal: "Fertility and Sterility",
-    year: "2024",
-    tag: "Diagnostics",
-    summary:
-      "Systematic review of 48 studies: combined CA-125 + IL-6 + NLR panel achieves 78% sensitivity and 82% specificity for endometriosis, outperforming CA-125 alone.",
-    href: "#",
-  },
-  {
-    id: 4,
-    title: "Letrozole vs norethisterone acetate for deep infiltrating endometriosis",
-    journal: "Cochrane Database",
-    year: "2024",
-    tag: "Meta-analysis",
-    summary:
-      "Aromatase inhibitors demonstrate superior pain relief at 6 months in DIE but with comparable recurrence rates. Consider as second-line after progestin failure.",
-    href: "#",
-  },
-  {
-    id: 5,
-    title: "LUNA vs no LUNA in laparoscopic pelvic pain management — 10yr follow-up",
-    journal: "BJOG",
-    year: "2023",
-    tag: "Surgical",
-    summary:
-      "Laparoscopic uterine nerve ablation shows no additional benefit over excision alone at 10 years. Excision of visible endometriosis remains the evidence-based surgical standard.",
-    href: "#",
-  },
-];
 
 export default function CdssDashboard() {
   const { patients, getRiskAssessment, setCurrentPatientId } = useCdss();
@@ -111,27 +57,35 @@ export default function CdssDashboard() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
-        {/* ── Left: patients ── */}
-        <div className="space-y-6">
+      <div className="space-y-6">
           {/* Alerts banner */}
           {alertPatients.length > 0 && (
-            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-3">
-              <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
-              <p className="text-sm text-amber-800">
-                <span className="font-semibold">{alertPatients.length} patient{alertPatients.length !== 1 ? "s" : ""}</span>{" "}
-                {alertPatients.length === 1 ? "has" : "have"} active clinical alerts requiring review.{" "}
-                {alertPatients.map((a) => (
-                  <Link
-                    key={a.patient.id}
-                    href={`/cdss/biomarkers?patient=${a.patient.id}`}
-                    className="font-semibold underline underline-offset-2 mr-1"
-                    onClick={() => setCurrentPatientId(a.patient.id)}
-                  >
-                    {a.patient.name}
-                  </Link>
-                ))}
-              </p>
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 flex items-center gap-3">
+              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <span className="text-sm font-semibold text-amber-800 shrink-0">
+                  {alertPatients.length} patient{alertPatients.length !== 1 ? "s" : ""} need review
+                </span>
+                {/* Avatar stack */}
+                <div className="flex items-center -space-x-1.5">
+                  {alertPatients.slice(0, 3).map((a) => (
+                    <Link
+                      key={a.patient.id}
+                      href={`/cdss/biomarkers?patient=${a.patient.id}`}
+                      onClick={() => setCurrentPatientId(a.patient.id)}
+                      title={a.patient.name}
+                      className="h-6 w-6 rounded-full bg-amber-200 border-2 border-amber-50 flex items-center justify-center text-[10px] font-bold text-amber-800 hover:z-10 hover:scale-110 transition-transform"
+                    >
+                      {a.patient.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}
+                    </Link>
+                  ))}
+                  {alertPatients.length > 3 && (
+                    <div className="h-6 w-6 rounded-full bg-amber-300 border-2 border-amber-50 flex items-center justify-center text-[9px] font-bold text-amber-900">
+                      +{alertPatients.length - 3}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -147,7 +101,7 @@ export default function CdssDashboard() {
                     </span>
                   )}
                 </CardTitle>
-                <Link href="/cdss/patients">
+                <Link href="/cdss/patient?new=1">
                   <Button
                     size="sm"
                     variant="outline"
@@ -229,7 +183,7 @@ export default function CdssDashboard() {
                             )}
                           </div>
                           <p className="text-xs text-[var(--color-brand-muted)] mt-0.5">
-                            Age {patient.age} · {patient.symptom_duration_months}mo symptoms
+                            {patient.symptom_duration_months}mo symptoms
                             {patient.known_endometriosis_stage && patient.known_endometriosis_stage !== "none"
                               ? ` · ${patient.known_endometriosis_stage.replace("stage_", "Stage ").toUpperCase()}`
                               : ""}
@@ -246,56 +200,6 @@ export default function CdssDashboard() {
               )}
             </CardContent>
           </Card>
-        </div>
-
-        {/* ── Right: latest research ── */}
-        <div>
-          <Card className="bg-white border-[#E8E8E8]">
-            <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="font-display text-base font-bold text-[var(--color-brand-midnight)]">
-                Latest Evidence
-              </CardTitle>
-              <Link
-                href="/cdss/research"
-                className="text-xs font-semibold text-[var(--color-brand-primary)] flex items-center gap-1 hover:text-[var(--color-brand-primary-hover)]"
-              >
-                View all <ArrowRight className="h-3 w-3" />
-              </Link>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-[#E8E8E8]">
-                {RESEARCH_HIGHLIGHTS.slice(0, 4).map((paper) => (
-                  <div key={paper.id} className="px-5 py-4">
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-xs font-semibold text-[var(--color-brand-primary)] bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5">
-                        {paper.tag}
-                      </span>
-                      <span className="text-xs text-[var(--color-brand-muted)]">{paper.year}</span>
-                    </div>
-                    <p className="text-sm font-semibold text-[var(--color-brand-midnight)] leading-snug mb-1">
-                      {paper.title}
-                    </p>
-                    <p className="text-xs text-[var(--color-brand-muted)] italic mb-2">
-                      {paper.journal}
-                    </p>
-                    <p className="text-xs text-[#4B5563] leading-relaxed line-clamp-2">
-                      {paper.summary}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <div className="px-5 py-3 border-t border-[#E8E8E8]">
-                <Link
-                  href="/cdss/research"
-                  className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[var(--color-brand-primary)] hover:text-[var(--color-brand-primary-hover)] transition-colors"
-                >
-                  <BookOpen className="h-3.5 w-3.5" />
-                  View all research & trials
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
 
       {/* Disclaimer */}

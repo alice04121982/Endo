@@ -188,7 +188,8 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
     Object.fromEntries(HISTORY_SECTIONS.map((s) => [s.key, true]))
   );
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const finalTextRef = useRef("");
   const timer = useTimer(status === "recording");
 
@@ -199,7 +200,8 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
   const startRecording = useCallback(() => {
     if (!isSupported) { setError("Speech recognition not supported. Try Chrome or Edge."); return; }
 
-    const SR = window.SpeechRecognition ?? (window as typeof window & { webkitSpeechRecognition: typeof SpeechRecognition }).webkitSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     const rec = new SR();
     rec.lang = "en-GB";
     rec.continuous = true;
@@ -207,7 +209,8 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
 
     finalTextRef.current = "";
 
-    rec.onresult = (event) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (event: any) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         if (event.results[i].isFinal) {
@@ -219,7 +222,8 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
       setTranscript(finalTextRef.current + interim);
     };
 
-    rec.onerror = (event) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onerror = (event: any) => {
       setError(event.error === "not-allowed"
         ? "Microphone access denied."
         : `Recording error: ${event.error}`);

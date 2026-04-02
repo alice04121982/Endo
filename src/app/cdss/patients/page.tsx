@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useCdss } from "@/lib/cdss-store";
 import type { RiskLevel } from "@/lib/types/cdss";
+import { getProfileCompleteness } from "@/lib/profile-completeness";
 
 const riskColors: Record<RiskLevel, string> = {
   low: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -45,7 +46,7 @@ const riskLabels: Record<RiskLevel, string> = {
 
 export default function PatientsPage() {
   const router = useRouter();
-  const { patients, getRiskAssessment, setCurrentPatientId, removePatient, currentPatient } = useCdss();
+  const { patients, getRiskAssessment, setCurrentPatientId, removePatient, currentPatient, getPatientBiomarkers } = useCdss();
   const [query, setQuery] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -56,8 +57,12 @@ export default function PatientsPage() {
   }, [patients, query]);
 
   const assessments = useMemo(
-    () => filtered.map((p) => ({ patient: p, risk: getRiskAssessment(p.id) })),
-    [filtered, getRiskAssessment]
+    () => filtered.map((p) => ({
+      patient: p,
+      risk: getRiskAssessment(p.id),
+      completeness: getProfileCompleteness(p, getPatientBiomarkers(p.id).length),
+    })),
+    [filtered, getRiskAssessment, getPatientBiomarkers]
   );
 
   function handleSelect(patientId: string, dest: string) {
@@ -139,59 +144,18 @@ export default function PatientsPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {assessments.map(({ patient, risk }) => (
+          {assessments.map(({ patient, risk, completeness }) => (
             <Card
               key={patient.id}
               className="bg-white border-[#E8E8E8] hover:border-[var(--color-brand-primary)]/30 transition-colors cursor-pointer"
               onClick={() => goToPatient(patient.id)}
             >
               <CardContent className="py-4 px-5">
-                <div className="flex items-center gap-4">
-                  {/* Avatar */}
-                  <div className="h-11 w-11 rounded-full bg-[var(--color-brand-smoke)] flex items-center justify-center shrink-0 text-base font-bold text-[var(--color-brand-muted)]">
-                    {patient.name.charAt(0).toUpperCase()}
-                  </div>
-
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-display font-bold text-[var(--color-brand-midnight)]">
-                        {patient.name}
-                      </span>
-                      {risk && (
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs ${riskColors[risk.overall_risk]}`}
-                        >
-                          {riskLabels[risk.overall_risk]}
-                          {risk.score > 0 && ` · ${risk.score}/100`}
-                        </Badge>
-                      )}
-                      {risk && risk.clinical_alerts.length > 0 && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
-                          <AlertTriangle className="h-3 w-3" />
-                          {risk.clinical_alerts.length} alert{risk.clinical_alerts.length !== 1 ? "s" : ""}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-[var(--color-brand-muted)] mt-0.5">
-                      Age {patient.age}
-                      {patient.bmi ? ` · BMI ${patient.bmi}` : ""}
-                      {" · "}
-                      Symptoms {patient.symptom_duration_months} months
-                      {patient.known_endometriosis_stage &&
-                      patient.known_endometriosis_stage !== "none"
-                        ? ` · ${patient.known_endometriosis_stage.replace("stage_", "Stage ").replace("_", " ").toUpperCase()}`
-                        : ""}
-                    </p>
-                    {risk && risk.nice_ng73_criteria_met.length > 0 && (
-                      <p className="text-xs text-[var(--color-brand-primary)] font-semibold mt-0.5">
-                        {risk.nice_ng73_criteria_met.length} NICE NG73 criteria met
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Actions */}
+                {/* Row 1: name + actions */}
+                <div className="flex items-center justify-between gap-3 mb-2">
+                  <span className="font-display font-bold text-[var(--color-brand-midnight)] truncate">
+                    {patient.name}
+                  </span>
                   <div className="flex items-center gap-2 shrink-0">
                     <Button
                       variant="outline"
@@ -213,36 +177,78 @@ export default function PatientsPage() {
                   </div>
                 </div>
 
-                {/* Assessment journey steps */}
-                <div className="mt-3 pt-3 border-t border-[#F3F4F6] flex items-center gap-1 text-xs text-[var(--color-brand-muted)]">
-                  <span className="font-semibold text-[var(--color-brand-midnight)]">Quick access:</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "history"); }}
-                    className="px-2 py-0.5 rounded hover:bg-[#F3F4F6] transition-colors"
-                  >
-                    History
-                  </button>
-                  <ArrowRight className="h-3 w-3" />
-                  <button
-                    onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "biomarkers"); }}
-                    className="px-2 py-0.5 rounded hover:bg-[#F3F4F6] transition-colors"
-                  >
-                    Biomarkers
-                  </button>
-                  <ArrowRight className="h-3 w-3" />
-                  <button
-                    onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "trends"); }}
-                    className="px-2 py-0.5 rounded hover:bg-[#F3F4F6] transition-colors"
-                  >
-                    Trends
-                  </button>
-                  <ArrowRight className="h-3 w-3" />
-                  <button
-                    onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "contributions"); }}
-                    className="px-2 py-0.5 rounded hover:bg-[#F3F4F6] transition-colors"
-                  >
-                    Contributions
-                  </button>
+                {/* Row 2: badges */}
+                <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                  {completeness.level === "minimal" && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
+                      Profile incomplete
+                    </span>
+                  )}
+                  {completeness.level === "partial" && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                      Partial profile
+                    </span>
+                  )}
+                  {risk && completeness.level === "complete" && (
+                    <Badge variant="secondary" className={`text-xs ${riskColors[risk.overall_risk]}`}>
+                      {riskLabels[risk.overall_risk]}
+                      {risk.score > 0 && ` · ${risk.score}/100`}
+                    </Badge>
+                  )}
+                  {risk && risk.clinical_alerts.length > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
+                      <AlertTriangle className="h-3 w-3" />
+                      {risk.clinical_alerts.length} alert{risk.clinical_alerts.length !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
+
+                {/* Row 3: age / symptoms — single line */}
+                <p className="text-xs text-[var(--color-brand-muted)] whitespace-nowrap overflow-hidden text-ellipsis">
+                  Age {patient.age}
+                  {patient.bmi ? ` · BMI ${patient.bmi}` : ""}
+                  {" · Symptoms "}
+                  {patient.symptom_duration_months} months
+                  {patient.known_endometriosis_stage && patient.known_endometriosis_stage !== "none"
+                    ? ` · ${patient.known_endometriosis_stage.replace("stage_", "Stage ").replace("_", " ").toUpperCase()}`
+                    : ""}
+                </p>
+
+                {risk && risk.nice_ng73_criteria_met.length > 0 && (
+                  <p className="text-xs text-[var(--color-brand-primary)] font-semibold mt-0.5">
+                    {risk.nice_ng73_criteria_met.length} NICE NG73 criteria met
+                  </p>
+                )}
+
+                {/* Quick access */}
+                <div className="mt-3 pt-3 border-t border-[#F3F4F6]">
+                  <p className="text-xs font-semibold text-[var(--color-brand-midnight)] mb-1.5">Quick access:</p>
+                  <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "history"); }}
+                      className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#F3F4F6] text-[var(--color-brand-midnight)] hover:bg-[var(--color-brand-primary)]/10 hover:text-[var(--color-brand-primary)] transition-colors"
+                    >
+                      History
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "biomarkers"); }}
+                      className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#F3F4F6] text-[var(--color-brand-midnight)] hover:bg-[var(--color-brand-primary)]/10 hover:text-[var(--color-brand-primary)] transition-colors"
+                    >
+                      Biomarkers
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "trends"); }}
+                      className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#F3F4F6] text-[var(--color-brand-midnight)] hover:bg-[var(--color-brand-primary)]/10 hover:text-[var(--color-brand-primary)] transition-colors"
+                    >
+                      Trends
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); goToPatient(patient.id, "contributions"); }}
+                      className="shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#F3F4F6] text-[var(--color-brand-midnight)] hover:bg-[var(--color-brand-primary)]/10 hover:text-[var(--color-brand-primary)] transition-colors"
+                    >
+                      Contributions
+                    </button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

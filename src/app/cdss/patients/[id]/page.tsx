@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -8,11 +8,13 @@ import {
   ArrowLeft,
   CheckCircle2,
   ClipboardList,
+  Database,
   FlaskConical,
   Heart,
   Info,
   Pencil,
   Plus,
+  Search,
   ShieldAlert,
   Stethoscope,
   TrendingUp,
@@ -23,6 +25,9 @@ import {
   AreaChart,
   Area,
   CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
   ReferenceLine,
   ResponsiveContainer,
   Tooltip,
@@ -37,24 +42,30 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { useCdss } from "@/lib/cdss-store";
+import { useClinician } from "@/lib/clinician-store";
+import { useCompliance } from "@/lib/compliance-store";
 import {
   BIOMARKER_META,
+  BIOMARKER_SOURCE_LABELS,
+  type BiomarkerSource,
   type BiomarkerType,
   type ClinicalAlert,
   type RiskLevel,
   type SymptomLog,
 } from "@/lib/types/cdss";
+import { getProfileCompleteness } from "@/lib/profile-completeness";
 import { cn } from "@/lib/utils";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-type Tab = "history" | "biomarkers" | "trends" | "contributions";
+type Tab = "history" | "biomarkers" | "trends" | "contributions" | "records";
 
 const TABS: { id: Tab; label: string; icon: typeof ClipboardList }[] = [
   { id: "history", label: "History", icon: ClipboardList },
   { id: "biomarkers", label: "Biomarkers", icon: FlaskConical },
   { id: "trends", label: "Trends", icon: TrendingUp },
   { id: "contributions", label: "Patient Contributions", icon: Heart },
+  { id: "records", label: "GP Record", icon: Stethoscope },
 ];
 
 const BIOMARKER_GROUPS: { title: string; category: string; markers: BiomarkerType[] }[] = [
@@ -317,98 +328,268 @@ function HistoryTab({ patientId }: { patientId: string }) {
 
 // ── Biomarkers Tab ─────────────────────────────────────────────────────────────
 
+const SOURCE_STYLES: Record<BiomarkerSource, string> = {
+  nhs_api:      "bg-blue-50 text-blue-700 border-blue-200",
+  hospital_lab: "bg-purple-50 text-purple-700 border-purple-200",
+  gp_referral:  "bg-emerald-50 text-emerald-700 border-emerald-200",
+  private_lab:  "bg-amber-50 text-amber-700 border-amber-200",
+  manual:       "bg-[#F8F9FA] text-[var(--color-brand-muted)] border-[#E8E8E8]",
+};
+
+const FLAG_STYLES: Record<string, string> = {
+  normal:   "bg-emerald-100 text-emerald-700",
+  elevated: "bg-amber-100 text-amber-700",
+  low:      "bg-blue-100 text-blue-700",
+  critical: "bg-red-100 text-red-700",
+};
+
 function BiomarkersTab({ patientId }: { patientId: string }) {
   const { patients, addBiomarker, getPatientBiomarkers, getRiskAssessment, removeBiomarker } = useCdss();
   const patient = patients.find((p) => p.id === patientId);
-  const patientBiomarkers = useMemo(() => getPatientBiomarkers(patientId), [patientId, getPatientBiomarkers]);
+  const patientBiomarkers = useMemo(
+    () => getPatientBiomarkers(patientId).sort((a, b) => b.date_collected.localeCompare(a.date_collected)),
+    [patientId, getPatientBiomarkers]
+  );
   const risk = useMemo(() => getRiskAssessment(patientId), [patientId, getRiskAssessment]);
-  const [inputValues, setInputValues] = useState<Record<string, string>>({});
-  const [inputDate, setInputDate] = useState(new Date().toISOString().split("T")[0]);
 
-  function handleAddMarker(marker: BiomarkerType) {
-    const raw = inputValues[marker];
-    const value = parseFloat(raw);
+  const today = new Date().toISOString().split("T")[0];
+  const [newMarker, setNewMarker]     = useState<BiomarkerType>("ca125");
+  const [newValue, setNewValue]       = useState("");
+  const [newDate, setNewDate]         = useState(today);
+  const [newSource, setNewSource]     = useState<BiomarkerSource>("hospital_lab");
+  const [newOrderedBy, setNewOrderedBy] = useState("");
+  const [newCycleDay, setNewCycleDay] = useState("");
+
+  function handleAdd() {
+    const value = parseFloat(newValue);
     if (isNaN(value)) return;
-    addBiomarker(patientId, marker, value, inputDate);
-    setInputValues((prev) => ({ ...prev, [marker]: "" }));
+    addBiomarker(patientId, newMarker, value, newDate, {
+      source: newSource,
+      ordered_by: newOrderedBy.trim() || undefined,
+      cycle_day: newCycleDay ? parseInt(newCycleDay, 10) : null,
+    });
+    setNewValue("");
+    setNewCycleDay("");
   }
 
   if (!patient) return null;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left: Lab entry */}
+      {/* Left: history + add form */}
       <div className="lg:col-span-2 space-y-4">
+
+        {/* Add new result form */}
         <Card className="bg-white border-[#E8E8E8]">
-          <CardContent className="pt-4 pb-4 px-5">
-            <div className="flex items-center gap-4">
-              <Label className="text-xs font-semibold text-[var(--color-brand-muted)] shrink-0">Collection Date</Label>
-              <Input type="date" value={inputDate} onChange={(e) => setInputDate(e.target.value)} className="w-48" />
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-bold text-[var(--color-brand-midnight)] flex items-center gap-2">
+              <Plus className="h-4 w-4 text-[var(--color-brand-orange)]" />
+              Add Test Result
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Row 1: core fields */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="col-span-2 sm:col-span-1">
+                <Label className="text-xs font-semibold text-[var(--color-brand-muted)]">Test</Label>
+                <select
+                  value={newMarker}
+                  onChange={(e) => setNewMarker(e.target.value as BiomarkerType)}
+                  className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {BIOMARKER_GROUPS.map((g) => (
+                    <optgroup key={g.category} label={g.title}>
+                      {g.markers.map((m) => (
+                        <option key={m} value={m}>{BIOMARKER_META[m].label} ({BIOMARKER_META[m].unit})</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-[var(--color-brand-muted)]">
+                  Value ({BIOMARKER_META[newMarker].unit})
+                </Label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  placeholder={BIOMARKER_META[newMarker].unit}
+                  value={newValue}
+                  onChange={(e) => setNewValue(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-[var(--color-brand-muted)]">Date Collected</Label>
+                <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="mt-1" />
+              </div>
             </div>
+            {/* Row 2: provenance */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs font-semibold text-[var(--color-brand-muted)]">Source</Label>
+                <select
+                  value={newSource}
+                  onChange={(e) => setNewSource(e.target.value as BiomarkerSource)}
+                  className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {(Object.keys(BIOMARKER_SOURCE_LABELS) as BiomarkerSource[]).map((s) => (
+                    <option key={s} value={s}>{BIOMARKER_SOURCE_LABELS[s]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-[var(--color-brand-muted)]">
+                  Ordered by <span className="font-normal opacity-60">(optional)</span>
+                </Label>
+                <Input
+                  type="text"
+                  placeholder="e.g. Dr. Smith"
+                  value={newOrderedBy}
+                  onChange={(e) => setNewOrderedBy(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs font-semibold text-[var(--color-brand-muted)]">
+                  Cycle day <span className="font-normal opacity-60">(optional)</span>
+                </Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={35}
+                  placeholder="1–35"
+                  value={newCycleDay}
+                  onChange={(e) => setNewCycleDay(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <Button
+              onClick={handleAdd}
+              disabled={!newValue}
+              className="h-9 bg-[var(--color-brand-primary)] text-white font-semibold hover:bg-[var(--color-brand-primary-hover)]"
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Add Result
+            </Button>
           </CardContent>
         </Card>
 
-        {BIOMARKER_GROUPS.map((group) => (
-          <Card key={group.category} className="bg-white border-[#E8E8E8]">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-bold text-[var(--color-brand-midnight)]">{group.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {group.markers.map((marker) => {
-                const meta = BIOMARKER_META[marker];
-                const latestValue = patientBiomarkers.find((b) => b.marker === marker);
-                return (
-                  <div key={marker} className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
-                    <div className="w-32 shrink-0">
-                      <span className="text-sm font-medium text-[var(--color-brand-midnight)]">{meta.label}</span>
-                      <p className="text-xs text-[var(--color-brand-muted)] font-mono">
-                        {meta.reference.low}–{meta.reference.high} {meta.unit}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <Input
-                        type="number"
-                        step="0.1"
-                        placeholder={meta.unit}
-                        value={inputValues[marker] ?? ""}
-                        onChange={(e) => setInputValues((prev) => ({ ...prev, [marker]: e.target.value }))}
-                        onKeyDown={(e) => e.key === "Enter" && handleAddMarker(marker)}
-                        className="w-28"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 rounded-lg text-xs shrink-0"
-                        onClick={() => handleAddMarker(marker)}
-                        disabled={!inputValues[marker]}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                    {latestValue && (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <Badge
-                          variant="secondary"
-                          className={`text-xs ${
-                            latestValue.flag === "normal" ? "bg-emerald-100 text-emerald-700"
-                            : latestValue.flag === "critical" ? "bg-red-100 text-red-700"
-                            : latestValue.flag === "elevated" ? "bg-amber-100 text-amber-700"
-                            : "bg-blue-100 text-blue-700"
-                          }`}
-                        >
-                          {latestValue.value} {meta.unit} — {latestValue.flag}
+        {/* History per group */}
+        {BIOMARKER_GROUPS.map((group) => {
+          const groupHasData = group.markers.some((m) => patientBiomarkers.some((b) => b.marker === m));
+          if (!groupHasData) return null;
+          return (
+            <Card key={group.category} className="bg-white border-[#E8E8E8]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-bold text-[var(--color-brand-midnight)]">{group.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {group.markers.map((marker) => {
+                  const results = patientBiomarkers.filter((b) => b.marker === marker);
+                  if (results.length === 0) return null;
+                  const meta = BIOMARKER_META[marker];
+                  return (
+                    <div key={marker}>
+                      {/* Marker header */}
+                      <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-[var(--color-brand-midnight)]">{meta.label}</span>
+                          <span className="text-xs font-mono text-[var(--color-brand-muted)]">
+                            ref {meta.reference.low}–{meta.reference.high} {meta.unit}
+                          </span>
+                        </div>
+                        <Badge variant="secondary" className="text-[10px] bg-[#F8F9FA] text-[var(--color-brand-muted)]">
+                          {results.length} result{results.length !== 1 ? "s" : ""}
                         </Badge>
-                        <button onClick={() => removeBiomarker(latestValue.id)} className="text-[var(--color-brand-muted)] hover:text-red-500">
-                          <X className="h-3.5 w-3.5" />
-                        </button>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                      {/* Results table */}
+                      <div className="overflow-x-auto rounded-lg border border-[#F3F4F6]">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-[#F8F9FA] border-b border-[#F3F4F6]">
+                              <th className="px-3 py-2 text-left font-semibold text-[var(--color-brand-muted)] whitespace-nowrap">Date</th>
+                              <th className="px-3 py-2 text-left font-semibold text-[var(--color-brand-muted)] whitespace-nowrap">Value</th>
+                              <th className="px-3 py-2 text-left font-semibold text-[var(--color-brand-muted)] whitespace-nowrap">Change</th>
+                              <th className="px-3 py-2 text-left font-semibold text-[var(--color-brand-muted)] whitespace-nowrap">Source</th>
+                              <th className="px-3 py-2 text-left font-semibold text-[var(--color-brand-muted)] whitespace-nowrap">Ordered by</th>
+                              <th className="px-3 py-2 text-left font-semibold text-[var(--color-brand-muted)] whitespace-nowrap">Cycle day</th>
+                              <th className="w-8" />
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {results.map((result, idx) => {
+                              const prev = results[idx + 1]; // results sorted desc, so next index = older
+                              const delta = prev ? result.value - prev.value : null;
+                              const deltaStr = delta !== null
+                                ? `${delta > 0 ? "+" : ""}${delta.toFixed(1)}`
+                                : "—";
+                              const deltaColor = delta === null
+                                ? "text-[var(--color-brand-muted)]"
+                                : delta > 0 ? "text-amber-600 font-semibold" : delta < 0 ? "text-emerald-600 font-semibold" : "text-[var(--color-brand-muted)]";
+                              return (
+                                <tr key={result.id} className="border-b border-[#F3F4F6] last:border-0 hover:bg-[#FAFAFA] transition-colors">
+                                  <td className="px-3 py-2.5 whitespace-nowrap font-mono text-[var(--color-brand-midnight)]">
+                                    {new Date(result.date_collected).toLocaleDateString("en-GB", {
+                                      day: "numeric", month: "short", year: "numeric",
+                                    })}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold", FLAG_STYLES[result.flag])}>
+                                      {result.value} {meta.unit}
+                                    </span>
+                                  </td>
+                                  <td className={cn("px-3 py-2.5 font-mono whitespace-nowrap", deltaColor)}>
+                                    {deltaStr}
+                                  </td>
+                                  <td className="px-3 py-2.5 whitespace-nowrap">
+                                    {result.source ? (
+                                      <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold", SOURCE_STYLES[result.source])}>
+                                        {BIOMARKER_SOURCE_LABELS[result.source]}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[var(--color-brand-muted)]">—</span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2.5 text-[var(--color-brand-midnight)] whitespace-nowrap">
+                                    {result.ordered_by ?? <span className="text-[var(--color-brand-muted)]">—</span>}
+                                  </td>
+                                  <td className="px-3 py-2.5 font-mono text-[var(--color-brand-midnight)] whitespace-nowrap">
+                                    {result.cycle_day != null ? `Day ${result.cycle_day}` : <span className="text-[var(--color-brand-muted)]">—</span>}
+                                  </td>
+                                  <td className="px-3 py-2.5">
+                                    <button
+                                      onClick={() => removeBiomarker(result.id)}
+                                      className="text-[var(--color-brand-muted)] hover:text-red-500 transition-colors"
+                                      aria-label="Delete result"
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          );
+        })}
+
+        {patientBiomarkers.length === 0 && (
+          <Card className="bg-white border-[#E8E8E8]">
+            <CardContent className="py-12 text-center">
+              <FlaskConical className="h-10 w-10 text-[var(--color-brand-muted)]/40 mx-auto mb-3" />
+              <p className="text-sm text-[var(--color-brand-muted)]">No test results yet. Use the form above to add the first result.</p>
             </CardContent>
           </Card>
-        ))}
+        )}
       </div>
 
       {/* Right: Risk panel */}
@@ -676,10 +857,10 @@ function TrendsTab({ patientId }: { patientId: string }) {
                         formatter={(value) => [`${value} ${meta.unit}`, meta.label]}
                       />
                       <ReferenceLine y={meta.reference.high} stroke="#F59E0B" strokeDasharray="6 4"
-                        label={{ value: `Upper (${meta.reference.high})`, position: "right", fontSize: 10, fill: "#F59E0B" }}
+                        label={{ value: `↑ ${meta.reference.high}`, position: "insideTopLeft", fontSize: 10, fill: "#F59E0B" }}
                       />
                       <ReferenceLine y={meta.reference.low} stroke="#6366F1" strokeDasharray="6 4"
-                        label={{ value: `Lower (${meta.reference.low})`, position: "right", fontSize: 10, fill: "#6366F1" }}
+                        label={{ value: `↓ ${meta.reference.low}`, position: "insideBottomLeft", fontSize: 10, fill: "#6366F1" }}
                       />
                       <Area type="monotone" dataKey="value" stroke="var(--color-brand-blue)" strokeWidth={2}
                         fill="url(#valGrad)"
@@ -724,6 +905,66 @@ function ScoreBar({ score, max = 10 }: { score: number; max?: number }) {
   );
 }
 
+function SymptomTrendsChart({ logs }: { logs: SymptomLog[] }) {
+  const chartData = useMemo(() => {
+    return [...logs]
+      .sort((a, b) => a.logged_at.localeCompare(b.logged_at))
+      .map((log) => ({
+        date: new Date(log.logged_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
+        pain: log.pain_score,
+        fatigue: log.fatigue_score,
+        mood: log.mood_score,
+        periodPain: log.period_pain_score,
+      }));
+  }, [logs]);
+
+  if (chartData.length < 2) return null;
+
+  return (
+    <Card className="bg-white border-[#E8E8E8]">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-bold text-[var(--color-brand-midnight)] flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-[var(--color-brand-primary)]" />
+          Symptom Trends
+        </CardTitle>
+        <p className="text-xs text-[var(--color-brand-muted)]">Scores 0–10 as logged by patient</p>
+      </CardHeader>
+      <CardContent>
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#6B8BAF" }} tickLine={false} />
+              <YAxis domain={[0, 10]} ticks={[0, 2, 4, 6, 8, 10]} tick={{ fontSize: 10, fill: "#6B8BAF" }} tickLine={false} />
+              <Tooltip
+                contentStyle={{ borderRadius: "12px", border: "1px solid #D4DCE6", fontSize: "12px" }}
+                formatter={(value, name) => {
+                  const labels: Record<string, string> = { pain: "Overall Pain", fatigue: "Fatigue", mood: "Mood", periodPain: "Period Pain" };
+                  return [`${value}/10`, labels[name as string] ?? name];
+                }}
+              />
+              <Legend
+                wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }}
+                formatter={(value) => {
+                  const labels: Record<string, string> = { pain: "Overall Pain", fatigue: "Fatigue", mood: "Mood", periodPain: "Period Pain" };
+                  return labels[value] ?? value;
+                }}
+              />
+              <Line type="monotone" dataKey="pain" stroke="#F97316" strokeWidth={2} dot={{ r: 3, fill: "#F97316" }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="fatigue" stroke="#6366F1" strokeWidth={2} dot={{ r: 3, fill: "#6366F1" }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="mood" stroke="#10B981" strokeWidth={2} dot={{ r: 3, fill: "#10B981" }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="periodPain" stroke="#EC4899" strokeWidth={2} strokeDasharray="4 3"
+                dot={{ r: 3, fill: "#EC4899" }} activeDot={{ r: 5 }}
+                connectNulls={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ContributionsTab({ patientId }: { patientId: string }) {
   const { getPatientSymptomLogs } = useCdss();
   const logs = useMemo(() => getPatientSymptomLogs(patientId), [patientId, getPatientSymptomLogs]);
@@ -747,6 +988,7 @@ function ContributionsTab({ patientId }: { patientId: string }) {
   return (
     <div className="space-y-3">
       <p className="text-xs text-[var(--color-brand-muted)]">{logs.length} log{logs.length !== 1 ? "s" : ""} recorded by patient via Patient Portal</p>
+      <SymptomTrendsChart logs={logs} />
       {logs.map((log) => (
         <LogCard key={log.id} log={log} />
       ))}
@@ -850,6 +1092,321 @@ function LogCard({ log }: { log: SymptomLog }) {
   );
 }
 
+// ── GP Records Tab ────────────────────────────────────────────────────────────
+
+const GP_CONNECT_REASONS = [
+  "Direct care — reviewing patient history before consultation",
+  "Direct care — confirming medications and allergies",
+  "Direct care — reviewing existing diagnoses and investigations",
+  "Direct care — preparing referral letter",
+  "Direct care — post-operative follow-up",
+];
+
+const MOCK_GP_RECORD = {
+  demographics: {
+    nhs_number: "943 476 5919",
+    gp_practice: "The Nightingale Surgery",
+    gp_name: "Dr. P. Okonkwo",
+    registered_since: "2018-03-12",
+  },
+  conditions: [
+    { code: "N80.0", description: "Endometriosis of uterus", status: "active", onset: "2021-06" },
+    { code: "R10.2", description: "Pelvic and perineal pain", status: "active", onset: "2020-02" },
+    { code: "N94.4", description: "Primary dysmenorrhoea", status: "active", onset: "2019-09" },
+    { code: "K58.0", description: "Irritable bowel syndrome with diarrhoea", status: "active", onset: "2020-11" },
+  ],
+  medications: [
+    { name: "Naproxen 500mg tablets", dose: "500mg", frequency: "Twice daily with food", start: "2021-08" },
+    { name: "Norethisterone 5mg tablets", dose: "5mg", frequency: "Once daily", start: "2022-01" },
+    { name: "Mefenamic acid 500mg capsules", dose: "500mg", frequency: "Three times daily PRN", start: "2021-08" },
+  ],
+  allergies: [
+    { substance: "Penicillin", reaction: "Anaphylaxis", severity: "severe", recorded: "2015-04" },
+    { substance: "Ibuprofen", reaction: "GI haemorrhage", severity: "moderate", recorded: "2020-09" },
+  ],
+  last_consultation: {
+    date: "2024-11-14",
+    clinician: "Dr. P. Okonkwo",
+    summary: "Patient attended with ongoing cyclical pelvic pain and heavy menstrual bleeding. Endometriosis previously confirmed on laparoscopy (2021). Norethisterone providing partial symptom relief. Referred to secondary care gynaecology for review. Pain scores 7/10 at worst. Discussed lifestyle and dietary modifications. Prescription for Naproxen renewed.",
+  },
+};
+
+function GpRecordsTab({ patientId, patientName }: { patientId: string; patientName: string }) {
+  const { activeClinician } = useClinician();
+  const { logEvent, compliance } = useCompliance();
+  const [stage, setStage] = useState<"idle" | "request" | "loading" | "result" | "pds_loading" | "pds_result">("idle");
+  const [reason, setReason] = useState(GP_CONNECT_REASONS[0]);
+  const [pdsResult, setPdsResult] = useState<{ verified: boolean; discrepancy?: string } | null>(null);
+
+  function requestGpConnect() {
+    if (!activeClinician) return;
+    setStage("loading");
+    logEvent({
+      clinician_id: activeClinician.id,
+      clinician_name: activeClinician.name,
+      event_type: "gp_connect_request",
+      patient_id: patientId,
+      patient_name: patientName,
+      description: `GP Connect record requested for ${patientName}`,
+      access_reason: reason,
+    });
+    setTimeout(() => setStage("result"), 1800);
+  }
+
+  function requestPds() {
+    if (!activeClinician) return;
+    setStage("pds_loading");
+    logEvent({
+      clinician_id: activeClinician.id,
+      clinician_name: activeClinician.name,
+      event_type: "pds_lookup",
+      patient_id: patientId,
+      patient_name: patientName,
+      description: `PDS demographics lookup for ${patientName}`,
+    });
+    setTimeout(() => {
+      setPdsResult({ verified: true });
+      setStage("pds_result");
+    }, 1400);
+  }
+
+  const gpConnectLive = compliance?.gp_connect_status === "live";
+  const pdsLive = compliance?.pds_environment === "production";
+
+  return (
+    <div className="space-y-5">
+      {/* Legal basis notice */}
+      <div className="flex gap-3 rounded-xl bg-blue-50 border border-blue-200 p-4">
+        <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+        <div className="text-xs text-blue-800 leading-relaxed">
+          <p className="font-semibold mb-1">Lawful basis for access</p>
+          <p>Accessing a patient&apos;s GP record is lawful under <strong>GDPR Article 9(2)(h)</strong> for direct care and <strong>NHS common law duty of confidentiality</strong>. Access is subject to the <strong>Caldicott Principles</strong> — only access data necessary for the immediate care episode. All requests are logged to the audit trail.</p>
+        </div>
+      </div>
+
+      {/* PDS Demographics */}
+      <Card className="bg-white border-[#E8E8E8]">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-sm font-bold text-[var(--color-brand-midnight)] flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-[#0057FF]" />
+                PDS Demographic Verification
+              </CardTitle>
+              <p className="text-xs text-[var(--color-brand-muted)] mt-0.5">Personal Demographics Service — NHS FHIR R4</p>
+            </div>
+            {!pdsLive && (
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 shrink-0">Demo</span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {stage === "idle" && (
+            <div className="space-y-3">
+              <p className="text-xs text-[var(--color-brand-muted)]">
+                Verify the patient&apos;s NHS number and demographics against the NHS Personal Demographics Service to confirm identity before accessing clinical records.
+              </p>
+              <Button
+                size="sm"
+                onClick={requestPds}
+                className="bg-[#0057FF] hover:bg-[#0046D4] text-white gap-1.5"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Verify via PDS {!pdsLive && "(Demo)"}
+              </Button>
+            </div>
+          )}
+          {stage === "pds_loading" && (
+            <div className="flex items-center gap-3 py-3 text-sm text-[var(--color-brand-muted)]">
+              <div className="h-4 w-4 rounded-full border-2 border-[#0057FF] border-t-transparent animate-spin shrink-0" />
+              Querying PDS FHIR R4…
+            </div>
+          )}
+          {(stage === "pds_result" || stage === "request" || stage === "loading" || stage === "result") && pdsResult && (
+            <div className="space-y-3">
+              <div className={cn(
+                "flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold",
+                pdsResult.verified ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+              )}>
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                Demographics verified — NHS number confirmed
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(MOCK_GP_RECORD.demographics).map(([k, v]) => (
+                  <div key={k} className="bg-[#F8FAFC] rounded-lg px-3 py-2">
+                    <p className="text-[10px] font-semibold text-[var(--color-brand-muted)] uppercase tracking-wide">
+                      {k.replace(/_/g, " ")}
+                    </p>
+                    <p className="text-xs font-semibold text-[var(--color-brand-midnight)] mt-0.5">{v}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* GP Connect */}
+      <Card className="bg-white border-[#E8E8E8]">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-sm font-bold text-[var(--color-brand-midnight)] flex items-center gap-2">
+                <Database className="h-4 w-4 text-[#0057FF]" />
+                GP Connect — Access Record: Structured
+              </CardTitle>
+              <p className="text-xs text-[var(--color-brand-muted)] mt-0.5">NHS England GP Connect API</p>
+            </div>
+            {!gpConnectLive && (
+              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 shrink-0">Demo</span>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {(stage === "idle" || stage === "pds_loading" || stage === "pds_result") && (
+            <div className="space-y-3">
+              <p className="text-xs text-[var(--color-brand-muted)]">
+                Pull the patient&apos;s structured GP record including diagnoses, medications, and allergies. Select a clinical reason — this is recorded in the audit trail in accordance with the Caldicott Principles.
+              </p>
+              <div>
+                <label className="text-xs font-semibold text-[var(--color-brand-midnight)] block mb-1.5">Reason for access (required)</label>
+                <select
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-[#E8E8E8] bg-white px-3 text-xs text-[#111827]"
+                >
+                  {GP_CONNECT_REASONS.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setStage("request")}
+                disabled={stage !== "pds_result" && stage !== "idle"}
+                className="bg-[#0057FF] hover:bg-[#0046D4] text-white gap-1.5"
+              >
+                <Database className="h-3.5 w-3.5" />
+                Request GP Record {!gpConnectLive && "(Demo)"}
+              </Button>
+            </div>
+          )}
+
+          {stage === "request" && (
+            <div className="space-y-3">
+              <div className="rounded-xl bg-amber-50 border border-amber-200 p-4">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                  <div className="text-xs text-amber-800">
+                    <p className="font-semibold mb-1">Confirm access</p>
+                    <p>You are requesting the structured GP record for <strong>{patientName}</strong>. This access will be logged in the audit trail and is governed by the <strong>Caldicott Principles</strong>.</p>
+                    <p className="mt-1.5">Reason: <em>{reason}</em></p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={requestGpConnect} className="bg-[#0057FF] hover:bg-[#0046D4] text-white gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Confirm &amp; request
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setStage("idle")} className="border-[#E8E8E8]">
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {stage === "loading" && (
+            <div className="flex items-center gap-3 py-6 text-sm text-[var(--color-brand-muted)]">
+              <div className="h-4 w-4 rounded-full border-2 border-[#0057FF] border-t-transparent animate-spin shrink-0" />
+              Fetching structured record from GP Connect…
+            </div>
+          )}
+
+          {stage === "result" && (
+            <div className="space-y-5">
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 rounded-lg px-3 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                Record retrieved — {new Date().toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+              </div>
+
+              {/* Last consultation */}
+              <div>
+                <p className="text-xs font-bold text-[var(--color-brand-midnight)] uppercase tracking-wide mb-2">Last GP Consultation</p>
+                <div className="bg-[#F8FAFC] rounded-xl border border-[#E8E8E8] p-3">
+                  <div className="flex justify-between gap-2 mb-2">
+                    <span className="text-xs font-semibold text-[var(--color-brand-midnight)]">{MOCK_GP_RECORD.last_consultation.clinician}</span>
+                    <span className="text-xs text-[var(--color-brand-muted)]">
+                      {new Date(MOCK_GP_RECORD.last_consultation.date).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#374151] leading-relaxed">{MOCK_GP_RECORD.last_consultation.summary}</p>
+                </div>
+              </div>
+
+              {/* Active conditions */}
+              <div>
+                <p className="text-xs font-bold text-[var(--color-brand-midnight)] uppercase tracking-wide mb-2">Active Conditions</p>
+                <div className="divide-y divide-[#F3F4F6] rounded-xl border border-[#E8E8E8] overflow-hidden">
+                  {MOCK_GP_RECORD.conditions.map((c) => (
+                    <div key={c.code} className="flex items-center justify-between gap-3 px-3 py-2.5 bg-white">
+                      <div>
+                        <span className="text-xs font-semibold text-[var(--color-brand-midnight)]">{c.description}</span>
+                        <span className="ml-2 text-[10px] text-[var(--color-brand-muted)] font-mono">{c.code}</span>
+                      </div>
+                      <span className="text-[10px] text-[var(--color-brand-muted)] shrink-0">
+                        Since {c.onset}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Current medications */}
+              <div>
+                <p className="text-xs font-bold text-[var(--color-brand-midnight)] uppercase tracking-wide mb-2">Current Medications</p>
+                <div className="divide-y divide-[#F3F4F6] rounded-xl border border-[#E8E8E8] overflow-hidden">
+                  {MOCK_GP_RECORD.medications.map((m) => (
+                    <div key={m.name} className="px-3 py-2.5 bg-white">
+                      <p className="text-xs font-semibold text-[var(--color-brand-midnight)]">{m.name}</p>
+                      <p className="text-[10px] text-[var(--color-brand-muted)] mt-0.5">{m.frequency} · since {m.start}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Allergies */}
+              <div>
+                <p className="text-xs font-bold text-[var(--color-brand-midnight)] uppercase tracking-wide mb-2">Allergies &amp; Adverse Reactions</p>
+                <div className="divide-y divide-[#F3F4F6] rounded-xl border border-red-100 overflow-hidden">
+                  {MOCK_GP_RECORD.allergies.map((a) => (
+                    <div key={a.substance} className="flex items-center justify-between gap-3 px-3 py-2.5 bg-red-50">
+                      <div>
+                        <span className="text-xs font-semibold text-red-800">{a.substance}</span>
+                        <span className="ml-2 text-xs text-red-600">{a.reaction}</span>
+                      </div>
+                      <span className={cn(
+                        "text-[10px] font-bold px-2 py-0.5 rounded-full border",
+                        a.severity === "severe" ? "bg-red-100 text-red-700 border-red-200" : "bg-orange-100 text-orange-700 border-orange-200"
+                      )}>
+                        {a.severity}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-[10px] text-[var(--color-brand-muted)] leading-relaxed">
+                Data sourced via NHS GP Connect Access Record: Structured API. This is mock data for demonstration purposes. In production, this would reflect the live GP record at time of query. Always verify clinical details with the patient.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function PatientDetailPage() {
@@ -858,9 +1415,32 @@ export default function PatientDetailPage() {
   const router = useRouter();
   const patientId = params.id;
 
-  const { patients, getRiskAssessment, setCurrentPatientId } = useCdss();
+  const { patients, getRiskAssessment, setCurrentPatientId, getPatientBiomarkers } = useCdss();
+  const { activeClinician } = useClinician();
+  const { logEvent } = useCompliance();
   const patient = useMemo(() => patients.find((p) => p.id === patientId) ?? null, [patients, patientId]);
+
+  // Log patient view
+  useEffect(() => {
+    if (patient && activeClinician) {
+      logEvent({
+        clinician_id: activeClinician.id,
+        clinician_name: activeClinician.name,
+        event_type: "patient_view",
+        patient_id: patient.id,
+        patient_name: patient.name,
+        description: `Viewed patient record: ${patient.name}`,
+      });
+    }
+    // Only run on mount / patient change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientId]);
   const risk = useMemo(() => getRiskAssessment(patientId), [patientId, getRiskAssessment]);
+  const patientBiomarkerCount = useMemo(() => getPatientBiomarkers(patientId).length, [patientId, getPatientBiomarkers]);
+  const completeness = useMemo(
+    () => patient ? getProfileCompleteness(patient, patientBiomarkerCount) : null,
+    [patient, patientBiomarkerCount]
+  );
 
   const activeTab = (searchParams.get("tab") ?? "history") as Tab;
 
@@ -873,7 +1453,7 @@ export default function PatientDetailPage() {
     return (
       <div className="px-6 lg:px-8 py-16 text-center">
         <p className="text-sm text-[var(--color-brand-muted)]">Patient not found.</p>
-        <Link href="/cdss/patients">
+        <Link href="/cdss">
           <Button size="sm" variant="outline" className="mt-4">← Back to patients</Button>
         </Link>
       </div>
@@ -881,51 +1461,80 @@ export default function PatientDetailPage() {
   }
 
   return (
-    <div className="px-6 lg:px-8 py-6 lg:py-8">
+    <div className="px-6 lg:px-8 py-6 lg:py-8 overflow-x-hidden">
       {/* Back link */}
-      <Link href="/cdss/patients" className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-brand-muted)] hover:text-[var(--color-brand-midnight)] mb-4 transition-colors">
+      <Link href="/cdss" className="inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-brand-muted)] hover:text-[var(--color-brand-midnight)] mb-4 transition-colors">
         <ArrowLeft className="h-3.5 w-3.5" />
-        All Patients
+        Dashboard
       </Link>
 
       {/* Patient header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-[var(--color-brand-smoke)] flex items-center justify-center shrink-0 text-lg font-bold text-[var(--color-brand-muted)]">
-            {patient.name.charAt(0).toUpperCase()}
-          </div>
-          <div>
-            <h1 className="font-display text-2xl font-bold text-[var(--color-brand-midnight)]">
-              {patient.name}
-            </h1>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <span className="text-sm text-[var(--color-brand-muted)]">
-                Age {patient.age} · {patient.symptom_duration_months}mo symptoms
-              </span>
-              {risk && (
-                <Badge variant="secondary" className={`text-xs font-bold ${riskColors[risk.overall_risk].badge}`}>
-                  {riskLabels[risk.overall_risk]} · {risk.score}/100
-                </Badge>
-              )}
-              {risk && risk.clinical_alerts.length > 0 && (
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
-                  <AlertTriangle className="h-3.5 w-3.5" />
-                  {risk.clinical_alerts.length} alert{risk.clinical_alerts.length !== 1 ? "s" : ""}
-                </span>
-              )}
-            </div>
-          </div>
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-bold text-[var(--color-brand-midnight)] leading-tight">
+          {patient.name}
+        </h1>
+        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+          <span className="text-sm text-[var(--color-brand-muted)]">
+            Age {patient.age} · {patient.symptom_duration_months}mo symptoms
+          </span>
+          {risk && (
+            <Badge variant="secondary" className={`text-xs font-bold ${riskColors[risk.overall_risk].badge}`}>
+              {riskLabels[risk.overall_risk]} · {risk.score}/100
+            </Badge>
+          )}
+          {risk && risk.clinical_alerts.length > 0 && (
+            <button
+              onClick={() => setTab("biomarkers")}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-1 hover:bg-amber-100 transition-colors"
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+              {risk.clinical_alerts.length} alert{risk.clinical_alerts.length !== 1 ? "s" : ""} — view
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-[#E8E8E8] mb-6">
+      {/* Incomplete profile banner */}
+      {completeness && completeness.level !== "complete" && (
+        <div className={cn(
+          "rounded-xl border px-4 py-3 mb-5 flex items-start justify-between gap-4",
+          completeness.level === "minimal"
+            ? "bg-blue-50 border-blue-200"
+            : "bg-amber-50 border-amber-200"
+        )}>
+          <div className="flex items-start gap-3 min-w-0">
+            <ClipboardList className={cn("h-4 w-4 mt-0.5 shrink-0", completeness.level === "minimal" ? "text-blue-500" : "text-amber-500")} />
+            <div className="min-w-0">
+              <p className={cn("text-sm font-semibold", completeness.level === "minimal" ? "text-blue-800" : "text-amber-800")}>
+                {completeness.level === "minimal"
+                  ? "Profile not yet completed — add clinical details when ready"
+                  : "Profile partially complete"}
+              </p>
+              <p className={cn("text-xs mt-0.5", completeness.level === "minimal" ? "text-blue-600" : "text-amber-700")}>
+                Still needed: {completeness.missingSections.join(" · ")}
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/cdss/patient?edit=${patientId}`}
+            className={cn(
+              "text-xs font-semibold shrink-0 underline hover:no-underline",
+              completeness.level === "minimal" ? "text-blue-700" : "text-amber-700"
+            )}
+          >
+            Complete profile
+          </Link>
+        </div>
+      )}
+
+      {/* Tabs — horizontally scrollable on mobile */}
+      <div className="flex gap-0 border-b border-[#E8E8E8] mb-6 overflow-x-auto scrollbar-none -mx-6 lg:-mx-8 px-6 lg:px-8">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
             className={cn(
-              "flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors",
+              "shrink-0 flex items-center gap-1.5 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap",
               activeTab === id
                 ? "border-[var(--color-brand-primary)] text-[var(--color-brand-primary)]"
                 : "border-transparent text-[var(--color-brand-muted)] hover:text-[var(--color-brand-midnight)]"
@@ -942,6 +1551,7 @@ export default function PatientDetailPage() {
       {activeTab === "biomarkers" && <BiomarkersTab patientId={patientId} />}
       {activeTab === "trends" && <TrendsTab patientId={patientId} />}
       {activeTab === "contributions" && <ContributionsTab patientId={patientId} />}
+      {activeTab === "records" && <GpRecordsTab patientId={patientId} patientName={patient.name} />}
     </div>
   );
 }

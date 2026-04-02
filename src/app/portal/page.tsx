@@ -27,7 +27,8 @@ function useVoiceInput() {
   const [status, setStatus] = useState<VoiceStatus>("idle");
   const [transcript, setTranscript] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const interimRef = useRef("");
 
   const isSupported =
@@ -37,7 +38,8 @@ function useVoiceInput() {
   const start = useCallback(() => {
     if (!isSupported) { setStatus("unsupported"); return; }
 
-    const SR = window.SpeechRecognition ?? (window as typeof window & { webkitSpeechRecognition: typeof SpeechRecognition }).webkitSpeechRecognition;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     const rec = new SR();
     rec.lang = "en-GB";
     rec.continuous = true;
@@ -46,7 +48,8 @@ function useVoiceInput() {
 
     let finalText = "";
 
-    rec.onresult = (event) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (event: any) => {
       let interim = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
@@ -60,7 +63,8 @@ function useVoiceInput() {
       setTranscript(finalText + interim);
     };
 
-    rec.onerror = (event) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onerror = (event: any) => {
       setError(event.error === "not-allowed"
         ? "Microphone access denied. Please allow microphone access and try again."
         : `Recording error: ${event.error}`);

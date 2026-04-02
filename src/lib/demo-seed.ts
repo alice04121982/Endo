@@ -2,7 +2,7 @@
  * Demo seed data — realistic endometriosis patient cohort for demonstrations.
  * Loaded automatically on first launch when localStorage is empty.
  */
-import type { BiomarkerValue, PatientHistory, SymptomLog } from "@/lib/types/cdss";
+import type { BiomarkerSource, BiomarkerValue, PatientHistory, SymptomLog } from "@/lib/types/cdss";
 import { BIOMARKER_META } from "@/lib/types/cdss";
 import { flagBiomarker } from "@/lib/engine/risk-engine";
 
@@ -289,6 +289,39 @@ Tramadol 50mg QDS PRN. Tranexamic acid 1g QDS (days 1–4 of period). Sertraline
 
 // ── Biomarkers ────────────────────────────────────────────────────────────────
 
+type BmProv = { source: BiomarkerSource; ordered_by: string; cycle_day: number | null };
+
+// Provenance keyed by `${patientId}:${date}` — applied automatically by bm()
+const PROV: Record<string, BmProv> = {
+  // ── Emma Clarke (PT1) ─── GP bloods → referral → hospital
+  [`${PT1}:2024-07-12`]: { source: "gp_referral",  ordered_by: "Dr. M. Patel",       cycle_day: 8  },
+  [`${PT1}:2025-01-08`]: { source: "gp_referral",  ordered_by: "Dr. M. Patel",       cycle_day: 12 },
+  [`${PT1}:2025-07-14`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 6  },
+  [`${PT1}:2026-01-10`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 9  },
+  // ── Sarah Okafor (PT2) ─── Hospital → NHS API
+  [`${PT2}:2023-01-15`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 7  },
+  [`${PT2}:2023-06-20`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 4  },
+  [`${PT2}:2024-01-10`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 8  },
+  [`${PT2}:2025-04-18`]: { source: "nhs_api",      ordered_by: "Dr. Sarah Johnson",  cycle_day: 5  },
+  [`${PT2}:2025-10-25`]: { source: "nhs_api",      ordered_by: "Dr. Sarah Johnson",  cycle_day: 3  },
+  // ── Jess Whitfield (PT3) ─── GP → hospital → NHS API (Mirena = no cycle days)
+  [`${PT3}:2022-06-08`]: { source: "gp_referral",  ordered_by: "Dr. L. Ahmed",       cycle_day: 10 },
+  [`${PT3}:2023-01-20`]: { source: "gp_referral",  ordered_by: "Dr. L. Ahmed",       cycle_day: 7  },
+  [`${PT3}:2023-09-14`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 5  },
+  [`${PT3}:2024-03-01`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 8  },
+  [`${PT3}:2024-09-05`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 6  },
+  [`${PT3}:2025-03-12`]: { source: "nhs_api",      ordered_by: "Dr. Sarah Johnson",  cycle_day: null }, // Mirena — no periods
+  // ── Priya Mehta (PT4) ─── GP escalating → urgent hospital
+  [`${PT4}:2022-01-18`]: { source: "gp_referral",  ordered_by: "Dr. R. Kumar",       cycle_day: 14 },
+  [`${PT4}:2022-07-06`]: { source: "gp_referral",  ordered_by: "Dr. R. Kumar",       cycle_day: 8  },
+  [`${PT4}:2023-01-24`]: { source: "gp_referral",  ordered_by: "Dr. R. Kumar",       cycle_day: 6  },
+  [`${PT4}:2023-07-11`]: { source: "gp_referral",  ordered_by: "Dr. R. Kumar",       cycle_day: 7  },
+  [`${PT4}:2024-01-30`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 3  },
+  [`${PT4}:2024-07-22`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 5  },
+  [`${PT4}:2025-01-15`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 8  },
+  [`${PT4}:2026-02-01`]: { source: "hospital_lab", ordered_by: "Dr. Sarah Johnson",  cycle_day: 2  },
+};
+
 function bm(
   id: string,
   patientId: string,
@@ -296,6 +329,7 @@ function bm(
   value: number,
   date: string
 ): BiomarkerValue {
+  const prov = PROV[`${patientId}:${date}`];
   return {
     id,
     patient_id: patientId,
@@ -303,6 +337,7 @@ function bm(
     value,
     date_collected: date,
     flag: flagBiomarker(marker, value, BIOMARKER_META[marker]),
+    ...(prov ?? {}),
   };
 }
 

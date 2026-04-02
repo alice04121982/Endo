@@ -36,6 +36,7 @@ export interface Clinician {
   role: ClinicianRole;
   hospital: string;
   is_admin: boolean;
+  onboarding_complete: boolean;
   created_at: string;
 }
 
@@ -56,7 +57,8 @@ interface ClinicianContextValue {
   addClinician: (data: Omit<Clinician, "id" | "created_at">) => Clinician;
   switchClinician: (id: string) => void;
   removeClinician: (id: string) => void;
-  updateClinician: (id: string, updates: Partial<Pick<Clinician, "name" | "role" | "hospital" | "is_admin">>) => void;
+  updateClinician: (id: string, updates: Partial<Pick<Clinician, "name" | "role" | "hospital" | "is_admin" | "onboarding_complete">>) => void;
+  completeOnboarding: (id: string) => void;
   generateInvite: () => InviteToken;
   validateInvite: (code: string) => boolean;
   consumeInvite: (code: string) => void;
@@ -116,6 +118,8 @@ export function ClinicianProvider({ children }: { children: ReactNode }) {
     (data: Omit<Clinician, "id" | "created_at">): Clinician => {
       const clinician: Clinician = {
         ...data,
+        // Admin must complete the org compliance wizard; non-admins (invited) inherit it
+        onboarding_complete: !data.is_admin,
         id: `cl-${Date.now()}`,
         created_at: new Date().toISOString(),
       };
@@ -153,7 +157,7 @@ export function ClinicianProvider({ children }: { children: ReactNode }) {
   }, [clinicians]);
 
   const updateClinician = useCallback(
-    (id: string, updates: Partial<Pick<Clinician, "name" | "role" | "hospital" | "is_admin">>) => {
+    (id: string, updates: Partial<Pick<Clinician, "name" | "role" | "hospital" | "is_admin" | "onboarding_complete">>) => {
       setClinicians((prev) => {
         const next = prev.map((c) => c.id === id ? { ...c, ...updates } : c);
         saveJson(CLINICIANS_KEY, next);
@@ -162,6 +166,14 @@ export function ClinicianProvider({ children }: { children: ReactNode }) {
     },
     []
   );
+
+  const completeOnboarding = useCallback((id: string) => {
+    setClinicians((prev) => {
+      const next = prev.map((c) => c.id === id ? { ...c, onboarding_complete: true } : c);
+      saveJson(CLINICIANS_KEY, next);
+      return next;
+    });
+  }, []);
 
   const generateInvite = useCallback((): InviteToken => {
     const token: InviteToken = {
@@ -211,6 +223,7 @@ export function ClinicianProvider({ children }: { children: ReactNode }) {
         generateInvite,
         validateInvite,
         consumeInvite,
+        completeOnboarding,
       }}
     >
       {children}

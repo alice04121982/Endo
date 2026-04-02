@@ -1,20 +1,23 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { GetStarted } from "@/components/layout/get-started";
 import { useClinician } from "@/lib/clinician-store";
 
 export default function CdssLayout({ children }: { children: React.ReactNode }) {
-  const { activeClinician, clinicians, switchClinician } = useClinician();
+  const { activeClinician } = useClinician();
+  const router = useRouter();
 
-  if (!activeClinician) {
-    return (
-      <GetStarted
-        existingClinicians={clinicians}
-        onSwitch={switchClinician}
-      />
-    );
-  }
+  useEffect(() => {
+    if (activeClinician === null) {
+      router.replace("/login");
+    } else if (!activeClinician.onboarding_complete) {
+      router.replace("/onboarding");
+    }
+  }, [activeClinician, router]);
+
+  if (!activeClinician || !activeClinician.onboarding_complete) return null;
 
   return <DashboardShell>{children}</DashboardShell>;
 }
