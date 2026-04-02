@@ -402,9 +402,9 @@ export default function LoginPage() {
         </span>
       </header>
 
-      <main className="flex-1 flex flex-col lg:flex-row items-start justify-center gap-8 px-6 py-10 max-w-6xl mx-auto w-full">
+      <main className="flex-1 flex flex-col lg:flex-row items-start gap-8 px-6 py-10 max-w-6xl mx-auto w-full">
         {/* ── Left: auth form ── */}
-        <div className="w-full max-w-md lg:sticky lg:top-10">
+        <div className="w-full lg:w-[380px] lg:shrink-0 lg:sticky lg:top-10">
           <div className="bg-white rounded-2xl border border-[#E8E8E8] p-6 shadow-sm">
             <LoginForm />
           </div>
@@ -416,7 +416,7 @@ export default function LoginPage() {
         </div>
 
         {/* ── Right: compliance framework ── */}
-        <div className="w-full max-w-xl">
+        <div className="w-full lg:flex-1">
           <div className="bg-white rounded-2xl border border-[#E8E8E8] p-6 shadow-sm">
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>

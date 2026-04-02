@@ -54,7 +54,7 @@ interface ClinicianContextValue {
   activeClinician: Clinician | null;
   isAdmin: boolean;
   invites: InviteToken[];
-  addClinician: (data: Omit<Clinician, "id" | "created_at">) => Clinician;
+  addClinician: (data: Omit<Clinician, "id" | "created_at" | "onboarding_complete">) => Clinician;
   switchClinician: (id: string) => void;
   removeClinician: (id: string) => void;
   updateClinician: (id: string, updates: Partial<Pick<Clinician, "name" | "role" | "hospital" | "is_admin" | "onboarding_complete">>) => void;
@@ -115,7 +115,7 @@ export function ClinicianProvider({ children }: { children: ReactNode }) {
   const isAdmin = activeClinician?.is_admin ?? false;
 
   const addClinician = useCallback(
-    (data: Omit<Clinician, "id" | "created_at">): Clinician => {
+    (data: Omit<Clinician, "id" | "created_at" | "onboarding_complete">): Clinician => {
       const clinician: Clinician = {
         ...data,
         // Admin must complete the org compliance wizard; non-admins (invited) inherit it
