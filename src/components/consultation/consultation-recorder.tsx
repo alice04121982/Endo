@@ -358,10 +358,10 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-bold text-[var(--color-brand-midnight)] flex items-center gap-2">
           <Mic className="h-4 w-4 text-[var(--color-brand-primary)]" />
-          Consultation Recording
+          Post-Consultation Dictation
         </CardTitle>
         <p className="text-xs text-[var(--color-brand-muted)]">
-          Press record and take the history — AI will transcribe and populate CO, HPC, PMH, FH, SH, Allergies and Medications.
+          After your consultation, press record and summarise the history in your own words — AI will populate CO, HPC, PMH, FH, SH, Allergies and Medications.
         </p>
       </CardHeader>
 
@@ -437,7 +437,7 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
         {transcript && status !== "saved" && (
           <div>
             <p className="text-xs font-semibold text-[var(--color-brand-muted)] uppercase tracking-wide mb-1.5">
-              {status === "recording" ? "Live transcript" : "Transcript"}
+              {status === "recording" ? "Dictating…" : "Dictation"}
             </p>
             <div className="rounded-lg bg-[var(--color-brand-smoke)] border border-[#E8E8E8] px-4 py-3 max-h-40 overflow-y-auto">
               <p className="text-sm text-[var(--color-brand-midnight)] leading-relaxed whitespace-pre-wrap">
@@ -579,14 +579,14 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
                     onClick={reset}
                     className="text-xs text-[var(--color-brand-muted)] hover:text-[var(--color-brand-midnight)] flex items-center gap-1"
                   >
-                    <FileText className="h-3 w-3" /> New recording
+                    <FileText className="h-3 w-3" /> New dictation
                   </button>
                 </div>
               </div>
             )}
 
             <p className="text-xs text-[var(--color-brand-muted)] leading-relaxed pt-1">
-              AI-generated — review and edit before saving to the medical record.
+              AI-generated from your dictation — review and edit before saving to the medical record.
             </p>
           </div>
         )}
