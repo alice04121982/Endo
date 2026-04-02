@@ -167,7 +167,7 @@ export default function TrendsPage() {
               <select
                 value={newTestMarker}
                 onChange={(e) => setNewTestMarker(e.target.value as BiomarkerType)}
-                className="mt-1 w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                className="mt-1 w-full rounded-md border border-input bg-background p-3 text-sm"
               >
                 {TREND_MARKERS.map((m) => (
                   <option key={m} value={m}>
