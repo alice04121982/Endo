@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Stethoscope, Shield, AlertTriangle } from "lucide-react";
+import { Stethoscope, Shield, AlertTriangle, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,19 +13,42 @@ interface Props {
 }
 
 export function GetStarted({ existingClinicians = [], onSwitch }: Props) {
-  const { addClinician } = useClinician();
+  const { addClinician, validateInvite, consumeInvite } = useClinician();
+  const isFirstUser = existingClinicians.length === 0;
+
   const [name, setName] = useState("");
   const [role, setRole] = useState<ClinicianRole>("consultant_gynaecologist");
   const [hospital, setHospital] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [accepted, setAccepted] = useState(false);
-  const [showNew, setShowNew] = useState(existingClinicians.length === 0);
+  const [showNew, setShowNew] = useState(isFirstUser);
   const [error, setError] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) { setError("Please enter your name."); return; }
     if (!accepted) { setError("You must accept the data handling notice to continue."); return; }
-    addClinician({ name: name.trim(), role, hospital: hospital.trim() });
+
+    // Non-first users must provide a valid invite code
+    if (!isFirstUser) {
+      if (!inviteCode.trim()) { setError("An invite code is required to join this team."); return; }
+      if (!validateInvite(inviteCode.trim())) { setError("Invalid or already used invite code. Ask your team admin to generate a new one."); return; }
+    }
+
+    const clinician = addClinician({
+      name: name.trim(),
+      role,
+      hospital: hospital.trim(),
+      // First user is always admin; subsequent users are not
+      is_admin: isFirstUser,
+    });
+
+    // Mark invite as used
+    if (!isFirstUser && inviteCode.trim()) {
+      consumeInvite(inviteCode.trim());
+    }
+
+    void clinician;
   }
 
   return (
@@ -48,7 +71,7 @@ export function GetStarted({ existingClinicians = [], onSwitch }: Props) {
               Welcome back
             </h1>
             <p className="text-sm text-[#6B7280] mb-5">
-              Select your profile to continue, or add a new clinician.
+              Select your profile to continue.
             </p>
 
             <div className="space-y-2 mb-4">
@@ -72,12 +95,19 @@ export function GetStarted({ existingClinicians = [], onSwitch }: Props) {
               ))}
             </div>
 
-            <button
-              onClick={() => setShowNew(true)}
-              className="w-full text-sm font-semibold text-[#0057FF] hover:text-[#0046D4] transition-colors py-2"
-            >
-              + Add new clinician
-            </button>
+            <div className="pt-3 border-t border-[#F3F4F6] flex items-center gap-2">
+              <KeyRound className="h-3.5 w-3.5 text-[#9CA3AF] shrink-0" />
+              <p className="text-xs text-[#9CA3AF]">
+                New to this team? Ask your admin for an invite code, then{" "}
+                <button
+                  onClick={() => setShowNew(true)}
+                  className="text-[#0057FF] font-semibold hover:underline"
+                >
+                  join here
+                </button>
+                .
+              </p>
+            </div>
           </div>
         )}
 
@@ -85,12 +115,12 @@ export function GetStarted({ existingClinicians = [], onSwitch }: Props) {
         {showNew && (
           <div className="bg-white rounded-2xl border border-[#E8E8E8] p-6 shadow-sm">
             <h1 className="font-display text-xl font-bold text-[#111827] mb-1">
-              {existingClinicians.length > 0 ? "Add new clinician" : "Welcome to EndoLink"}
+              {isFirstUser ? "Welcome to EndoLink" : "Join your team"}
             </h1>
             <p className="text-sm text-[#6B7280] mb-5">
-              {existingClinicians.length > 0
-                ? "Enter your details to create a new clinician profile."
-                : "NICE NG73 aligned clinical decision support for endometriosis. Set up your profile to get started."}
+              {isFirstUser
+                ? "Set up your team's EndoLink workspace. You'll be the admin and can invite colleagues."
+                : "Enter your invite code and create your profile to join your team's EndoLink workspace."}
             </p>
 
             {/* Data handling notice */}
@@ -101,13 +131,33 @@ export function GetStarted({ existingClinicians = [], onSwitch }: Props) {
                 <p>
                   EndoLink is a <strong>clinical decision support tool for demonstration and research purposes only</strong>.
                   Do not enter real, identifiable patient data. All data is stored locally in your browser
-                  and is not transmitted to any server. This tool does not replace clinical judgement and
-                  must not be used as the sole basis for clinical decisions.
+                  and is not transmitted to any server.
                 </p>
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Invite code — required for non-first users */}
+              {!isFirstUser && (
+                <div>
+                  <Label className="text-xs font-semibold text-[#6B7280]">
+                    Invite Code *
+                  </Label>
+                  <div className="relative mt-1">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]" />
+                    <Input
+                      value={inviteCode}
+                      onChange={(e) => { setInviteCode(e.target.value.toUpperCase()); setError(""); }}
+                      placeholder="e.g. A3F9KZ"
+                      className="pl-9 font-mono tracking-widest"
+                      autoFocus
+                      maxLength={8}
+                    />
+                  </div>
+                  <p className="text-xs text-[#9CA3AF] mt-1">Ask your team admin to generate an invite code from Account Settings.</p>
+                </div>
+              )}
+
               <div>
                 <Label className="text-xs font-semibold text-[#6B7280]">Full Name *</Label>
                 <Input
@@ -115,12 +165,12 @@ export function GetStarted({ existingClinicians = [], onSwitch }: Props) {
                   onChange={(e) => { setName(e.target.value); setError(""); }}
                   placeholder="Dr. Sarah Johnson"
                   className="mt-1"
-                  autoFocus
+                  autoFocus={isFirstUser}
                 />
               </div>
 
               <div>
-                <Label className="text-xs font-semibold text-[#6B7280]">Role *</Label>
+                <Label className="text-xs font-semibold text-[#6B7280]">Job Title / Role *</Label>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as ClinicianRole)}
@@ -151,8 +201,7 @@ export function GetStarted({ existingClinicians = [], onSwitch }: Props) {
                 />
                 <span className="text-xs text-[#6B7280] leading-relaxed">
                   I confirm this tool is being used for <strong>demonstration or research purposes only</strong> and
-                  I will not enter real identifiable patient data. I understand this tool does not replace
-                  clinical judgement.
+                  I will not enter real identifiable patient data.
                 </span>
               </label>
 
@@ -168,7 +217,7 @@ export function GetStarted({ existingClinicians = [], onSwitch }: Props) {
                 className="w-full bg-[#0057FF] text-white font-semibold h-10 hover:bg-[#0046D4]"
                 disabled={!name.trim() || !accepted}
               >
-                {existingClinicians.length > 0 ? "Add Clinician" : "Get Started"}
+                {isFirstUser ? "Set Up Workspace" : "Join Team"}
               </Button>
 
               {existingClinicians.length > 0 && (
@@ -184,10 +233,9 @@ export function GetStarted({ existingClinicians = [], onSwitch }: Props) {
           </div>
         )}
 
-        {/* NHS disclaimer */}
         <p className="text-center text-xs text-[#9CA3AF] mt-6 leading-relaxed">
           EndoLink is not a registered medical device. Based on NICE NG73.<br />
-          For demonstration purposes only. Not for use with real patient data.
+          For demonstration purposes only.
         </p>
       </div>
     </div>

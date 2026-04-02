@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Download,
   FileText,
   Mic,
@@ -19,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import type { SoapNote } from "@/app/api/soap-note/route";
+import type { ClinicalExtract } from "@/app/api/clinical-extract/route";
 import type { PatientHistory } from "@/lib/types/cdss";
 
 // ── Recording status ──────────────────────────────────────────────────────────
@@ -131,7 +134,7 @@ function useTimer(active: boolean) {
 
 interface ConsultationRecorderProps {
   patient: Partial<PatientHistory> | null;
-  onSave: (note: { content: string; transcript: string }) => void;
+  onSave: (note: { content: string; transcript: string; clinicalUpdates: Partial<PatientHistory> }) => void;
 }
 
 export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderProps) {
@@ -139,6 +142,7 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
   const [transcript, setTranscript] = useState("");
   const [soap, setSoap] = useState<SoapNote | null>(null);
   const [editedSoap, setEditedSoap] = useState<SoapNote | null>(null);
+  const [clinicalExtract, setClinicalExtract] = useState<ClinicalExtract | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     subjective: true, objective: true, assessment: true, plan: true,
@@ -204,23 +208,37 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
     setError(null);
 
     try {
-      const res = await fetch("/api/soap-note", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          transcript: text,
-          patientContext: buildPatientContext(patient),
+      const [soapRes, extractRes] = await Promise.all([
+        fetch("/api/soap-note", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            transcript: text,
+            patientContext: buildPatientContext(patient),
+          }),
         }),
-      });
+        fetch("/api/clinical-extract", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transcript: text }),
+        }),
+      ]);
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
+      if (!soapRes.ok) {
+        const body = await soapRes.json().catch(() => ({}));
         throw new Error(body.error ?? "Failed to generate SOAP note");
       }
 
-      const data = (await res.json()) as SoapNote;
-      setSoap(data);
-      setEditedSoap({ ...data });
+      const soapData = (await soapRes.json()) as SoapNote;
+      setSoap(soapData);
+      setEditedSoap({ ...soapData });
+
+      // Clinical extraction is best-effort — don't fail if it errors
+      if (extractRes.ok) {
+        const extractData = (await extractRes.json()) as ClinicalExtract;
+        setClinicalExtract(extractData);
+      }
+
       setStatus("ready");
     } catch (err) {
       setError((err as Error).message);
@@ -243,7 +261,38 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
       `PLAN\n${editedSoap.plan}`,
     ].join("\n");
 
-    onSave({ content, transcript });
+    // Build patient record updates from extracted clinical fields (nulls stripped)
+    const clinicalUpdates: Partial<PatientHistory> = {};
+    if (clinicalExtract) {
+      const e = clinicalExtract;
+      if (e.age != null) clinicalUpdates.age = e.age;
+      if (e.bmi != null) clinicalUpdates.bmi = e.bmi;
+      if (e.menarche_age != null) clinicalUpdates.menarche_age = e.menarche_age;
+      if (e.cycle_length_days != null) clinicalUpdates.cycle_length_days = e.cycle_length_days;
+      if (e.cycle_regularity != null) clinicalUpdates.cycle_regularity = e.cycle_regularity;
+      if (e.dysmenorrhoea_severity != null) clinicalUpdates.dysmenorrhoea_severity = e.dysmenorrhoea_severity;
+      if (e.dysmenorrhoea_onset_age != null) clinicalUpdates.dysmenorrhoea_onset_age = e.dysmenorrhoea_onset_age;
+      if (e.symptom_duration_months != null) clinicalUpdates.symptom_duration_months = e.symptom_duration_months;
+      if (e.gravidity != null) clinicalUpdates.gravidity = e.gravidity;
+      if (e.parity != null) clinicalUpdates.parity = e.parity;
+      if (e.fertility_concerns != null) clinicalUpdates.fertility_concerns = e.fertility_concerns;
+      if (e.chronic_pelvic_pain != null) clinicalUpdates.chronic_pelvic_pain = e.chronic_pelvic_pain;
+      if (e.dyspareunia != null) clinicalUpdates.dyspareunia = e.dyspareunia;
+      if (e.dyschezia != null) clinicalUpdates.dyschezia = e.dyschezia;
+      if (e.dysuria != null) clinicalUpdates.dysuria = e.dysuria;
+      if (e.cyclical_bowel_symptoms != null) clinicalUpdates.cyclical_bowel_symptoms = e.cyclical_bowel_symptoms;
+      if (e.cyclical_bladder_symptoms != null) clinicalUpdates.cyclical_bladder_symptoms = e.cyclical_bladder_symptoms;
+      if (e.non_cyclical_pain != null) clinicalUpdates.non_cyclical_pain = e.non_cyclical_pain;
+      if (e.previous_ultrasound != null) clinicalUpdates.previous_ultrasound = e.previous_ultrasound;
+      if (e.previous_laparoscopy != null) clinicalUpdates.previous_laparoscopy = e.previous_laparoscopy;
+      if (e.previous_mri != null) clinicalUpdates.previous_mri = e.previous_mri;
+      if (e.known_endometriosis_stage != null) clinicalUpdates.known_endometriosis_stage = e.known_endometriosis_stage;
+      if (e.current_treatments != null) clinicalUpdates.current_treatments = e.current_treatments;
+      if (e.family_history_endo != null) clinicalUpdates.family_history_endo = e.family_history_endo;
+      if (e.comorbidities != null) clinicalUpdates.comorbidities = e.comorbidities;
+    }
+
+    onSave({ content, transcript, clinicalUpdates });
     setStatus("saved");
   }
 
@@ -252,6 +301,7 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
     setTranscript("");
     setSoap(null);
     setEditedSoap(null);
+    setClinicalExtract(null);
     setError(null);
     finalTextRef.current = "";
   }
@@ -403,6 +453,38 @@ export function ConsultationRecorder({ patient, onSave }: ConsultationRecorderPr
                 )}
               </div>
             ))}
+
+            {/* Auto-populated fields summary */}
+            {status === "ready" && clinicalExtract && (() => {
+              const fields: string[] = [];
+              const e = clinicalExtract;
+              if (e.age != null) fields.push(`Age: ${e.age}`);
+              if (e.dysmenorrhoea_severity != null) fields.push(`Dysmenorrhoea: ${e.dysmenorrhoea_severity}/10`);
+              if (e.symptom_duration_months != null) fields.push(`Duration: ${e.symptom_duration_months}mo`);
+              if (e.cycle_regularity != null) fields.push(`Cycle: ${e.cycle_regularity}`);
+              if (e.chronic_pelvic_pain) fields.push("Pelvic pain");
+              if (e.dyspareunia) fields.push("Dyspareunia");
+              if (e.dyschezia) fields.push("Dyschezia");
+              if (e.fertility_concerns) fields.push("Fertility concerns");
+              if (e.family_history_endo) fields.push("Family Hx endo");
+              if (e.previous_laparoscopy) fields.push("Prior laparoscopy");
+              if (e.known_endometriosis_stage && e.known_endometriosis_stage !== "none")
+                fields.push(`Stage: ${e.known_endometriosis_stage.replace("_", " ")}`);
+              if (!fields.length) return null;
+              return (
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2.5">
+                  <p className="text-xs font-semibold text-emerald-800 mb-1.5 flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Clinical record will be auto-updated
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {fields.map((f) => (
+                      <span key={f} className="text-xs bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">{f}</span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Actions */}
             {status === "ready" && (

@@ -97,7 +97,7 @@ function HistoryTab({ patientId }: { patientId: string }) {
   const patient = patients.find((p) => p.id === patientId);
   if (!patient) return null;
 
-  function handleSaveAssessment({ content, transcript }: { content: string; transcript: string }) {
+  function handleSaveAssessment({ content, transcript, clinicalUpdates }: { content: string; transcript: string; clinicalUpdates: Partial<typeof patient> }) {
     void transcript;
     const note = {
       id: `note-${Date.now()}`,
@@ -107,6 +107,7 @@ function HistoryTab({ patientId }: { patientId: string }) {
     };
     updatePatient(patientId, {
       consultation_notes: [note, ...(patient!.consultation_notes ?? [])],
+      ...clinicalUpdates,
     });
     setShowRecorder(false);
   }

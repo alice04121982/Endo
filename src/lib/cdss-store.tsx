@@ -23,6 +23,7 @@ import type {
 } from "@/lib/types/cdss";
 import { BIOMARKER_META } from "@/lib/types/cdss";
 import { assessRisk, flagBiomarker } from "@/lib/engine/risk-engine";
+import { DEMO_PATIENTS, DEMO_BIOMARKERS, DEMO_SYMPTOM_LOGS } from "@/lib/demo-seed";
 
 const PATIENTS_KEY = "cdss_patients";
 const BIOMARKERS_KEY = "cdss_biomarkers";
@@ -72,9 +73,23 @@ export function CdssProvider({ children }: { children: ReactNode }) {
   const [currentPatientId, setCurrentPatientId] = useState<string | null>(null);
 
   useEffect(() => {
-    setPatients(loadJson<PatientHistory>(PATIENTS_KEY));
-    setBiomarkers(loadJson<BiomarkerValue>(BIOMARKERS_KEY));
-    setSymptomLogs(loadJson<SymptomLog>(SYMPTOM_LOGS_KEY));
+    const patients = loadJson<PatientHistory>(PATIENTS_KEY);
+    const biomarkers = loadJson<BiomarkerValue>(BIOMARKERS_KEY);
+    const symptomLogs = loadJson<SymptomLog>(SYMPTOM_LOGS_KEY);
+
+    // Seed demo data on first launch
+    if (patients.length === 0) {
+      saveJson(PATIENTS_KEY, DEMO_PATIENTS);
+      saveJson(BIOMARKERS_KEY, DEMO_BIOMARKERS);
+      saveJson(SYMPTOM_LOGS_KEY, DEMO_SYMPTOM_LOGS);
+      setPatients(DEMO_PATIENTS);
+      setBiomarkers(DEMO_BIOMARKERS);
+      setSymptomLogs(DEMO_SYMPTOM_LOGS);
+    } else {
+      setPatients(patients);
+      setBiomarkers(biomarkers);
+      setSymptomLogs(symptomLogs);
+    }
   }, []);
 
   const currentPatient = useMemo(
