@@ -307,32 +307,158 @@ function bm(
 }
 
 export const DEMO_BIOMARKERS: BiomarkerValue[] = [
-  // Emma Clarke (PT1) — elevated CA-125, raised CRP
-  bm("dbm-001", PT1, "ca125", 62, "2026-01-10"),
-  bm("dbm-002", PT1, "crp", 9.2, "2026-01-10"),
-  bm("dbm-003", PT1, "he4", 88, "2026-01-10"),
-  bm("dbm-004", PT1, "amh", 22, "2026-01-10"),
+  // ── Emma Clarke (PT1) ──────────────────────────────────────────────────────
+  // GP & hospital bloods over 18 months — rising CA-125, CRP, declining iron stores
+  // Tumour markers (rising trend — escalating disease activity)
+  bm("dbm-001a", PT1, "ca125", 22, "2024-07-12"),
+  bm("dbm-001b", PT1, "ca125", 31, "2025-01-08"),
+  bm("dbm-001c", PT1, "ca125", 44, "2025-07-14"),
+  bm("dbm-001d", PT1, "ca125", 62, "2026-01-10"),  // referral bloods
+  bm("dbm-001e", PT1, "he4",   72, "2025-01-08"),
+  bm("dbm-001f", PT1, "he4",   81, "2025-07-14"),
+  bm("dbm-001g", PT1, "he4",   88, "2026-01-10"),
+  // Inflammatory markers (worsening)
+  bm("dbm-002a", PT1, "crp",   3.1, "2024-07-12"),
+  bm("dbm-002b", PT1, "crp",   5.8, "2025-01-08"),
+  bm("dbm-002c", PT1, "crp",   7.2, "2025-07-14"),
+  bm("dbm-002d", PT1, "crp",   9.2, "2026-01-10"),
+  // Hormonal (AMH declining — ovarian reserve concern)
+  bm("dbm-003a", PT1, "amh",   28, "2024-07-12"),
+  bm("dbm-003b", PT1, "amh",   25, "2025-07-14"),
+  bm("dbm-003c", PT1, "amh",   22, "2026-01-10"),
+  bm("dbm-003d", PT1, "vitamin_d", 62, "2024-07-12"),
+  bm("dbm-003e", PT1, "vitamin_d", 44, "2025-07-14"),
+  bm("dbm-003f", PT1, "vitamin_d", 34, "2026-01-10"),
+  // Haematology (slow iron depletion from heavy periods)
+  bm("dbm-004a", PT1, "fbc_haemoglobin", 128, "2024-07-12"),
+  bm("dbm-004b", PT1, "fbc_haemoglobin", 124, "2025-01-08"),
+  bm("dbm-004c", PT1, "fbc_haemoglobin", 119, "2026-01-10"),
+  bm("dbm-004d", PT1, "ferritin", 32, "2024-07-12"),
+  bm("dbm-004e", PT1, "ferritin", 21, "2025-01-08"),
+  bm("dbm-004f", PT1, "ferritin", 13, "2026-01-10"),
 
-  // Sarah Okafor (PT2) — improving CA-125, stable markers
-  bm("dbm-010", PT2, "ca125", 68, "2025-04-18"),
-  bm("dbm-011", PT2, "crp", 6.1, "2025-04-18"),
-  bm("dbm-012", PT2, "ca125", 48, "2025-10-25"),
-  bm("dbm-013", PT2, "crp", 4.8, "2025-10-25"),
-  bm("dbm-014", PT2, "tsh", 1.8, "2025-10-25"),
-  bm("dbm-015", PT2, "amh", 14, "2025-10-25"),
+  // ── Sarah Okafor (PT2) ─────────────────────────────────────────────────────
+  // Pre-laparoscopy → post-lap → norethisterone → dienogest (clear treatment response)
+  // Tumour markers
+  bm("dbm-010a", PT2, "ca125",  94, "2023-01-15"),  // pre-laparoscopy
+  bm("dbm-010b", PT2, "ca125",  71, "2023-06-20"),  // post-lap improvement
+  bm("dbm-010c", PT2, "ca125",  82, "2024-01-10"),  // mild relapse
+  bm("dbm-010d", PT2, "ca125",  68, "2025-04-18"),  // norethisterone — partial response
+  bm("dbm-010e", PT2, "ca125",  48, "2025-10-25"),  // dienogest — good response
+  bm("dbm-010f", PT2, "he4",    98, "2023-01-15"),
+  bm("dbm-010g", PT2, "he4",    88, "2023-06-20"),
+  bm("dbm-010h", PT2, "he4",    82, "2025-04-18"),
+  bm("dbm-010i", PT2, "he4",    74, "2025-10-25"),
+  // Inflammatory
+  bm("dbm-011a", PT2, "crp",  12.4, "2023-01-15"),
+  bm("dbm-011b", PT2, "crp",   7.8, "2023-06-20"),
+  bm("dbm-011c", PT2, "crp",   9.1, "2024-01-10"),
+  bm("dbm-011d", PT2, "crp",   6.1, "2025-04-18"),
+  bm("dbm-011e", PT2, "crp",   4.8, "2025-10-25"),
+  bm("dbm-011f", PT2, "esr",    28, "2023-01-15"),
+  bm("dbm-011g", PT2, "esr",    18, "2023-06-20"),
+  bm("dbm-011h", PT2, "esr",    14, "2025-10-25"),
+  // Hormonal
+  bm("dbm-012a", PT2, "amh",    22, "2023-01-15"),
+  bm("dbm-012b", PT2, "amh",    20, "2024-01-10"),
+  bm("dbm-012c", PT2, "amh",    14, "2025-10-25"),   // declining — ovarian reserve concern
+  bm("dbm-012d", PT2, "tsh",   2.1, "2023-01-15"),
+  bm("dbm-012e", PT2, "tsh",   1.9, "2024-01-10"),
+  bm("dbm-012f", PT2, "tsh",   1.8, "2025-10-25"),
+  // Haematology
+  bm("dbm-013a", PT2, "fbc_haemoglobin", 118, "2023-01-15"),
+  bm("dbm-013b", PT2, "fbc_haemoglobin", 124, "2023-06-20"),
+  bm("dbm-013c", PT2, "fbc_haemoglobin", 121, "2025-04-18"),
+  bm("dbm-013d", PT2, "fbc_haemoglobin", 128, "2025-10-25"),
+  bm("dbm-013e", PT2, "ferritin", 18, "2023-01-15"),
+  bm("dbm-013f", PT2, "ferritin", 26, "2023-06-20"),
+  bm("dbm-013g", PT2, "ferritin", 24, "2025-04-18"),
+  bm("dbm-013h", PT2, "ferritin", 31, "2025-10-25"),
 
-  // Jess Whitfield (PT3) — normalised post-treatment
-  bm("dbm-020", PT3, "ca125", 28, "2024-03-01"),
-  bm("dbm-021", PT3, "ca125", 12, "2024-09-05"),
-  bm("dbm-022", PT3, "crp", 2.1, "2024-09-05"),
+  // ── Jess Whitfield (PT3) ──────────────────────────────────────────────────
+  // Pre-diagnosis → laparoscopy → Mirena IUS → full normalisation
+  // Tumour markers (excellent treatment response arc)
+  bm("dbm-020a", PT3, "ca125", 42, "2022-06-08"),  // symptoms worsening
+  bm("dbm-020b", PT3, "ca125", 36, "2023-01-20"),
+  bm("dbm-020c", PT3, "ca125", 31, "2023-09-14"),
+  bm("dbm-020d", PT3, "ca125", 28, "2024-03-01"),  // pre-laparoscopy
+  bm("dbm-020e", PT3, "ca125", 12, "2024-09-05"),  // 6mo post-op — normalised
+  bm("dbm-020f", PT3, "ca125", 10, "2025-03-12"),  // annual review — sustained
+  // Inflammatory (resolving)
+  bm("dbm-021a", PT3, "crp",  8.2, "2022-06-08"),
+  bm("dbm-021b", PT3, "crp",  6.4, "2023-01-20"),
+  bm("dbm-021c", PT3, "crp",  4.8, "2023-09-14"),
+  bm("dbm-021d", PT3, "crp",  3.1, "2024-03-01"),
+  bm("dbm-021e", PT3, "crp",  2.1, "2024-09-05"),
+  bm("dbm-021f", PT3, "crp",  1.4, "2025-03-12"),
+  // Hormonal (AMH stable — reassuring)
+  bm("dbm-022a", PT3, "amh",  38, "2022-06-08"),
+  bm("dbm-022b", PT3, "amh",  36, "2023-09-14"),
+  bm("dbm-022c", PT3, "amh",  34, "2024-03-01"),
+  bm("dbm-022d", PT3, "amh",  37, "2025-03-12"),  // recovering
+  // Haematology (improving with Mirena)
+  bm("dbm-023a", PT3, "fbc_haemoglobin", 132, "2022-06-08"),
+  bm("dbm-023b", PT3, "fbc_haemoglobin", 134, "2023-09-14"),
+  bm("dbm-023c", PT3, "fbc_haemoglobin", 138, "2024-03-01"),
+  bm("dbm-023d", PT3, "fbc_haemoglobin", 144, "2025-03-12"),
+  bm("dbm-024a", PT3, "ferritin", 45, "2022-06-08"),
+  bm("dbm-024b", PT3, "ferritin", 52, "2023-09-14"),
+  bm("dbm-024c", PT3, "ferritin", 64, "2024-09-05"),
+  bm("dbm-024d", PT3, "ferritin", 72, "2025-03-12"),
 
-  // Priya Mehta (PT4) — very elevated CA-125, anaemia
-  bm("dbm-030", PT4, "ca125", 112, "2026-02-01"),
-  bm("dbm-031", PT4, "crp", 14.0, "2026-02-01"),
-  bm("dbm-032", PT4, "fbc_haemoglobin", 94, "2026-02-01"),
-  bm("dbm-033", PT4, "ferritin", 8, "2026-02-01"),
-  bm("dbm-034", PT4, "he4", 124, "2026-02-01"),
-  bm("dbm-035", PT4, "amh", 31, "2026-02-01"),
+  // ── Priya Mehta (PT4) ─────────────────────────────────────────────────────
+  // 4-year progressive deterioration — every marker worsening — urgent picture
+  // Tumour markers (alarming sustained rise)
+  bm("dbm-030a", PT4, "ca125",  48, "2022-01-18"),
+  bm("dbm-030b", PT4, "ca125",  62, "2022-07-06"),
+  bm("dbm-030c", PT4, "ca125",  74, "2023-01-24"),
+  bm("dbm-030d", PT4, "ca125",  83, "2023-07-11"),
+  bm("dbm-030e", PT4, "ca125",  96, "2024-01-30"),
+  bm("dbm-030f", PT4, "ca125", 104, "2024-07-22"),
+  bm("dbm-030g", PT4, "ca125", 108, "2025-01-15"),
+  bm("dbm-030h", PT4, "ca125", 112, "2026-02-01"),  // referral — urgent
+  bm("dbm-031a", PT4, "he4",    74, "2022-07-06"),
+  bm("dbm-031b", PT4, "he4",    92, "2023-07-11"),
+  bm("dbm-031c", PT4, "he4",   110, "2024-07-22"),
+  bm("dbm-031d", PT4, "he4",   124, "2026-02-01"),
+  // Inflammatory (progressively worsening)
+  bm("dbm-032a", PT4, "crp",   4.2, "2022-01-18"),
+  bm("dbm-032b", PT4, "crp",   6.8, "2022-07-06"),
+  bm("dbm-032c", PT4, "crp",   8.4, "2023-01-24"),
+  bm("dbm-032d", PT4, "crp",   9.2, "2023-07-11"),
+  bm("dbm-032e", PT4, "crp",  10.8, "2024-01-30"),
+  bm("dbm-032f", PT4, "crp",  12.1, "2024-07-22"),
+  bm("dbm-032g", PT4, "crp",  13.4, "2025-01-15"),
+  bm("dbm-032h", PT4, "crp",  14.0, "2026-02-01"),
+  bm("dbm-032i", PT4, "esr",    22, "2022-07-06"),
+  bm("dbm-032j", PT4, "esr",    31, "2023-07-11"),
+  bm("dbm-032k", PT4, "esr",    38, "2024-07-22"),
+  bm("dbm-032l", PT4, "esr",    44, "2026-02-01"),
+  // Haematology (critical decline — Hb and ferritin crashing)
+  bm("dbm-033a", PT4, "fbc_haemoglobin", 128, "2022-01-18"),
+  bm("dbm-033b", PT4, "fbc_haemoglobin", 122, "2022-07-06"),
+  bm("dbm-033c", PT4, "fbc_haemoglobin", 116, "2023-01-24"),
+  bm("dbm-033d", PT4, "fbc_haemoglobin", 110, "2023-07-11"),
+  bm("dbm-033e", PT4, "fbc_haemoglobin", 104, "2024-01-30"),
+  bm("dbm-033f", PT4, "fbc_haemoglobin",  98, "2024-07-22"),
+  bm("dbm-033g", PT4, "fbc_haemoglobin",  96, "2025-01-15"),
+  bm("dbm-033h", PT4, "fbc_haemoglobin",  94, "2026-02-01"),
+  bm("dbm-034a", PT4, "ferritin", 28, "2022-01-18"),
+  bm("dbm-034b", PT4, "ferritin", 21, "2022-07-06"),
+  bm("dbm-034c", PT4, "ferritin", 16, "2023-01-24"),
+  bm("dbm-034d", PT4, "ferritin", 13, "2023-07-11"),
+  bm("dbm-034e", PT4, "ferritin", 11, "2024-01-30"),
+  bm("dbm-034f", PT4, "ferritin",  9, "2025-01-15"),
+  bm("dbm-034g", PT4, "ferritin",  8, "2026-02-01"),
+  // Hormonal
+  bm("dbm-035a", PT4, "amh",    42, "2022-01-18"),
+  bm("dbm-035b", PT4, "amh",    38, "2023-01-24"),
+  bm("dbm-035c", PT4, "amh",    34, "2024-01-30"),
+  bm("dbm-035d", PT4, "amh",    31, "2026-02-01"),
+  bm("dbm-035e", PT4, "vitamin_d", 38, "2022-07-06"),
+  bm("dbm-035f", PT4, "vitamin_d", 28, "2023-07-11"),
+  bm("dbm-035g", PT4, "vitamin_d", 22, "2024-07-22"),
+  bm("dbm-035h", PT4, "vitamin_d", 18, "2026-02-01"),
 ];
 
 // ── Symptom logs (portal contributions) ─────────────────────────────────────
