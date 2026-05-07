@@ -1,23 +1,72 @@
-"use client";
+import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth/current-user";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { useClinician } from "@/lib/clinician-store";
+const NAV = [
+  { href: "/cdss", label: "Rapid Answer" },
+  { href: "/cdss/dossier", label: "CSD" },
+  { href: "/cdss/timeline", label: "Timeline" },
+  { href: "/cdss/patients", label: "Patients" },
+  { href: "/cdss/audit", label: "Audit" },
+];
 
-export default function CdssLayout({ children }: { children: React.ReactNode }) {
-  const { activeClinician } = useClinician();
-  const router = useRouter();
+export default async function CdssLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const user = await getCurrentUser();
+  const signedIn = user?.role === "clinician";
+  const displayName = signedIn ? user.displayName : "Demo · Ms R Patel";
 
-  useEffect(() => {
-    if (activeClinician === null) {
-      router.replace("/login");
-    } else if (!activeClinician.onboarding_complete) {
-      router.replace("/onboarding");
-    }
-  }, [activeClinician, router]);
-
-  if (!activeClinician || !activeClinician.onboarding_complete) return null;
-
-  return <DashboardShell>{children}</DashboardShell>;
+  return (
+    <div
+      data-theme="clinician"
+      className="bg-background text-foreground min-h-[calc(100vh-3.5rem)]"
+    >
+      <header className="bg-card border-b border-border sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 h-12 flex items-center justify-between gap-6">
+          <Link href="/cdss" className="flex items-center gap-2.5">
+            <span className="inline-block h-5 w-5 rounded-sm bg-primary" />
+            <span className="font-display font-bold tracking-tight">Endo</span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+              Clinician
+            </span>
+          </Link>
+          <nav className="flex items-center gap-5 text-[13px]">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <span className="h-4 w-px bg-border" aria-hidden="true" />
+            <span className="text-muted-foreground hidden md:inline">
+              {displayName}
+            </span>
+            {signedIn ? (
+              <form action="/auth/signout" method="post">
+                <button
+                  type="submit"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Sign out
+                </button>
+              </form>
+            ) : (
+              <Link
+                href="/signin?role=clinician"
+                className="text-primary font-semibold hover:opacity-80 transition-opacity"
+              >
+                Sign in
+              </Link>
+            )}
+          </nav>
+        </div>
+      </header>
+      <main>{children}</main>
+    </div>
+  );
 }

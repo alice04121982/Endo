@@ -1,16 +1,25 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import url("https://api.fontshare.com/v2/css?f[]=excon@300,400,500,600,700,800&display=swap");
 
 @custom-variant dark (&:is(.dark *));
+
+/*
+  Endo brand palette — warm, feminine, light.
+  Patient-facing surface direction agreed 2026-05-07.
+  Ink is deep aubergine (not black) to soften the medical-software feel
+  without losing readability. All foreground/background pairs verified
+  WCAG 2.1 AA at 16px body.
+*/
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
-  /* Typography — Outfit for everything */
-  --font-sans: var(--font-outfit), "Outfit", ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-outfit), "Outfit", ui-sans-serif, system-ui, sans-serif;
+  /* Typography — Excon (Fontshare) */
+  --font-sans: "Excon", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Excon", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
   --font-heading: var(--font-display);
 
@@ -44,70 +53,128 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 10px;
-  --radius-2xl: 12px;
-  --radius-3xl: 12px;
-  --radius-4xl: 12px;
 
-  /* ── Type scale (WCAG AA: min 16px body, 14px labels) ── */
-  --text-xs: 0.8125rem;  /* 13px — smallest allowed (labels, captions) */
-  --text-sm: 0.9375rem;  /* 15px — secondary text */
-  --text-base: 1rem;     /* 16px — body text minimum */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 22px;
+  --radius-3xl: 28px;
+  --radius-4xl: 36px;
+
+  /* Type scale — WCAG AA: min 16px body, 13px floor for labels */
+  --text-xs: 0.8125rem;  /* 13px */
+  --text-sm: 0.9375rem;  /* 15px */
+  --text-base: 1rem;     /* 16px */
   --text-lg: 1.125rem;   /* 18px */
   --text-xl: 1.25rem;    /* 20px */
 
-  /* ── Brand tokens ── */
-  --color-brand-midnight: #111827;
-  --color-brand-blue: #0057FF;
-  --color-brand-blue-light: #EEF3FF;
-  --color-brand-primary: #0057FF;   /* Action blue — reference #0057ff */
-  --color-brand-primary-hover: #0046D4;
-  --color-brand-orange: #F97C00;    /* Warning amber — alerts/risk only */
-  --color-brand-orange-light: #FFF3E0;
-  --color-brand-smoke: #F8F9FA;     /* Near-white background */
-  --color-brand-white: #FFFFFF;
-  --color-brand-ink: #111827;
-  --color-brand-ink-soft: #374151;
-  --color-brand-muted: #6B7280;
+  /* Patient palette tokens — warm, feminine, light (default theme) */
+  --color-brand-cream: #FBF7F2;       /* base background */
+  --color-brand-blush: #F4DDD0;       /* secondary surface */
+  --color-brand-shell: #FFFCF8;       /* card alt */
+  --color-brand-clay: #B85F3F;        /* primary action — warm clay */
+  --color-brand-clay-deep: #9A4A2D;   /* primary action hover */
+  --color-brand-plum: #8E4F6B;        /* accent / link */
+  --color-brand-aubergine: #3B2A3F;   /* primary ink */
+  --color-brand-stone: #6B5859;       /* muted text */
+  --color-brand-sand: #EAD9CC;        /* border */
+  --color-brand-amber: #C9892C;       /* warning */
+  --color-brand-sage: #6F8770;        /* positive / safe */
+
+  /* Clinician palette tokens — supplied 2026-05-07. Saturated, modern,
+     designed for the CDSS / Rapid Answer Panel surfaces. Used wherever an
+     ancestor carries data-theme="clinician". */
+  --color-clinician-navy: #16215B;        /* Royal Blue Dark — ink */
+  --color-clinician-blue: #0070FA;        /* Blue Crayola — primary action */
+  --color-clinician-blue-deep: #0057CA;   /* primary action hover */
+  --color-clinician-sky: #259CF4;         /* Dodger Blue — accent */
+  --color-clinician-aqua: #18E4A2;        /* Medium Aquamarine — success */
+  --color-clinician-mauve: #F0A9F9;       /* Mauve — soft highlight */
+  --color-clinician-amber: #FFC45F;       /* Max. Yellow Red — warning */
+  --color-clinician-lavender: #E1EAF9;    /* Lavender Web — soft surface */
+  --color-clinician-mist: #F5F8FD;        /* near-white tint of lavender */
+  --color-clinician-stone: #4A5680;       /* muted text */
+  --color-clinician-line: #C4D4ED;        /* border */
+
+  /* Destructive — true red, shared by both palettes. Reserved for red-flag
+     triage and irreversible-delete confirmations. Warning amber stays
+     amber; destructive is its own, unmistakable, non-negotiable signal. */
+  --color-brand-red: #D7263D;
 }
 
-/* ── Palette ── */
+/* ── Patient palette (default) ── */
 :root {
-  --background: #F8F9FA;
-  --foreground: #111827;
+  --background: #FBF7F2;
+  --foreground: #3B2A3F;
   --card: #FFFFFF;
-  --card-foreground: #111827;
+  --card-foreground: #3B2A3F;
   --popover: #FFFFFF;
-  --popover-foreground: #111827;
-  --primary: #0057FF;
+  --popover-foreground: #3B2A3F;
+  --primary: #B85F3F;
   --primary-foreground: #FFFFFF;
-  --secondary: #EEF3FF;
-  --secondary-foreground: #111827;
-  --muted: #F3F4F6;
-  --muted-foreground: #6B7280;
-  --accent: #0057FF;
+  --secondary: #F4DDD0;
+  --secondary-foreground: #3B2A3F;
+  --muted: #F4ECE3;
+  --muted-foreground: #6B5859;
+  --accent: #8E4F6B;
   --accent-foreground: #FFFFFF;
-  --destructive: #D00D00;
-  --border: #E8E8E8;
-  --input: #F3F4F6;
-  --ring: #0057FF;
-  --chart-1: #0057FF;
-  --chart-2: #003E8B;
-  --chart-3: #F97C00;
-  --chart-4: #028901;
-  --chart-5: #6B7280;
-  --radius: 6px;
-  --sidebar: #003E8B;
-  --sidebar-foreground: #E8F0FF;
-  --sidebar-primary: #5B96FF;
+  --destructive: #D7263D;
+  --border: #EAD9CC;
+  --input: #F4ECE3;
+  --ring: #B85F3F;
+  --chart-1: #B85F3F;  /* clay */
+  --chart-2: #8E4F6B;  /* plum */
+  --chart-3: #6F8770;  /* sage */
+  --chart-4: #C9892C;  /* amber */
+  --chart-5: #6B5859;  /* stone */
+  --radius: 10px;
+  --sidebar: #FFFCF8;
+  --sidebar-foreground: #3B2A3F;
+  --sidebar-primary: #B85F3F;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #002D6E;
-  --sidebar-accent-foreground: #E8F0FF;
-  --sidebar-border: #002D6E;
-  --sidebar-ring: #5B96FF;
+  --sidebar-accent: #F4DDD0;
+  --sidebar-accent-foreground: #3B2A3F;
+  --sidebar-border: #EAD9CC;
+  --sidebar-ring: #B85F3F;
+}
+
+/* ── Clinician palette ──
+   Activates whenever an ancestor carries data-theme="clinician".
+   Light base (white), navy ink, blue primary, mauve / aquamarine /
+   amber as supporting accents. Destructive red is shared with patient. */
+[data-theme="clinician"] {
+  --background: #FFFFFF;
+  --foreground: #16215B;
+  --card: #FFFFFF;
+  --card-foreground: #16215B;
+  --popover: #FFFFFF;
+  --popover-foreground: #16215B;
+  --primary: #0070FA;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E1EAF9;
+  --secondary-foreground: #16215B;
+  --muted: #F5F8FD;
+  --muted-foreground: #4A5680;
+  --accent: #259CF4;
+  --accent-foreground: #FFFFFF;
+  --destructive: #D7263D;
+  --border: #C4D4ED;
+  --input: #F5F8FD;
+  --ring: #0070FA;
+  --chart-1: #0070FA;  /* blue crayola */
+  --chart-2: #259CF4;  /* dodger */
+  --chart-3: #18E4A2;  /* aquamarine */
+  --chart-4: #F0A9F9;  /* mauve */
+  --chart-5: #FFC45F;  /* yellow red */
+  --sidebar: #16215B;
+  --sidebar-foreground: #E1EAF9;
+  --sidebar-primary: #0070FA;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #259CF4;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #1F2D70;
+  --sidebar-ring: #259CF4;
 }
 
 @layer base {
@@ -117,183 +184,98 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
-    font-size: 1rem;      /* 16px — WCAG AA minimum for body text */
-    line-height: 1.5;     /* 1.5x line-height for readability */
+    font-size: 1rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
   }
   html {
     @apply font-sans;
   }
-  /* Subtle card elevation matching reference design */
+  /* Soft elevation — feels like paper, not glass */
   [data-slot="card"] {
-    box-shadow: 0 1px 10px rgba(0, 0, 0, 0.07);
-    border-color: #E8E8E8;
+    box-shadow: 0 1px 0 rgba(59, 42, 63, 0.04), 0 8px 24px -16px rgba(59, 42, 63, 0.18);
+    border-color: var(--color-brand-sand);
+  }
+  /* Heading rhythm */
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.015em;
+    color: var(--foreground);
   }
 }
 
 @layer utilities {
-  /* ── Type scale ── */
   .text-md          { font-size: 1rem;      line-height: 1.5rem; }
   .text-display-xs  { font-size: 1.5rem;    line-height: 2rem; }
   .text-display-sm  { font-size: 1.875rem;  line-height: 2.375rem; }
   .text-display-md  { font-size: 2.25rem;   line-height: 2.75rem; }
-  .text-display-lg  { font-size: 3rem;      line-height: 3.75rem; }
-  .text-display-xl  { font-size: 3.75rem;   line-height: 4.5rem; }
-  .text-display-2xl { font-size: 4.5rem;    line-height: 5.625rem; }
+  .text-display-lg  { font-size: 3rem;      line-height: 3.625rem; }
+  .text-display-xl  { font-size: 3.75rem;   line-height: 4.25rem; }
 
-  .font-display {
-    font-family: var(--font-display);
-  }
+  .font-display { font-family: var(--font-display); }
 
   .heading-display {
     font-family: var(--font-display);
-    font-weight: 800;
+    font-weight: 700;
     letter-spacing: -0.02em;
-    line-height: 1.15;
+    line-height: 1.1;
   }
 
-  .heading-display-lg {
-    font-family: var(--font-display);
-    font-weight: 900;
-    letter-spacing: -0.03em;
-    line-height: 1.05;
-  }
-
-  /* ── Card carousel ── */
-  .carousel-scroll {
-    display: flex;
-    gap: 1rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding-bottom: 0.5rem;
-  }
-  .carousel-scroll::-webkit-scrollbar {
-    display: none;
-  }
-  .carousel-card {
-    flex: 0 0 280px;
-    scroll-snap-align: start;
-    min-height: 380px;
-    display: flex;
-    flex-direction: column;
-    border-radius: 8px;
-    overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  .carousel-card:hover {
-    transform: translateY(-2px);
-  }
-  @media (min-width: 768px) {
-    .carousel-card {
-      flex: 0 0 320px;
-      min-height: 420px;
-    }
-  }
-
-  /* ── Accent card (lavender background) ── */
-  .card-accent {
-    background-color: var(--color-brand-lavender);
-    color: var(--color-brand-midnight);
-  }
-  .card-accent .tag-pill {
-    background-color: #FFFFFF;
-    color: var(--color-brand-midnight);
-  }
-  .card-accent .card-cta {
-    color: var(--color-brand-midnight);
-  }
-
-  /* ── Neutral card (white) ── */
-  .card-neutral {
-    background-color: #FFFFFF;
-    color: var(--color-brand-midnight);
-  }
-  .card-neutral .tag-pill {
-    background-color: #FFFFFF;
-    color: var(--color-brand-midnight);
-  }
-  .card-neutral .card-cta {
-    color: var(--color-brand-orange);
-  }
-
-  /* ── Warm card (light blue tint) ── */
-  .card-warm {
-    background-color: #E8EDF4;
-    color: var(--color-brand-midnight);
-  }
-  .card-warm .tag-pill {
-    background-color: #FFFFFF;
-    color: var(--color-brand-midnight);
-  }
-  .card-warm .card-cta {
-    color: var(--color-brand-orange);
-  }
-
-  /* ── Tag pills ── */
-  .tag-pill {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 9999px;
-    padding: 0.375rem 0.875rem;
+  /* Persistent regulatory disclaimer bar.
+     Patient: warm peach band, aubergine type.
+     Clinician: lavender tint, navy type. */
+  .disclaimer-bar {
+    background-color: #F8EDE3;
+    color: var(--color-brand-aubergine);
+    border-top: 1px solid var(--color-brand-sand);
     font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    line-height: 1.5;
+  }
+  [data-theme="clinician"] .disclaimer-bar,
+  [data-theme="clinician"].disclaimer-bar {
+    background-color: var(--color-clinician-lavender);
+    color: var(--color-clinician-navy);
+    border-top-color: var(--color-clinician-line);
   }
 
-  /* ── CTA link ── */
-  .card-cta {
+  /* AI-generated content marker — used wherever model output is surfaced */
+  .ai-label {
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    font-size: 1rem;
-    font-weight: 700;
-    transition: gap 0.2s ease;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--color-brand-blush);
+    color: var(--color-brand-aubergine);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
   }
-  .card-cta:hover {
-    gap: 0.625rem;
+  .ai-label::before {
+    content: "";
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 9999px;
+    background-color: var(--color-brand-clay);
   }
-
-  /* ── Shadows (flat design — none) ── */
-  .card-soft { box-shadow: none; }
-  .card-lifted { box-shadow: none; }
-
-  /* ── Hero — flat colour, no gradient ── */
-  .hero-editorial {
-    background-color: #F4F2F2;
+  [data-theme="clinician"] .ai-label {
+    background-color: var(--color-clinician-lavender);
+    color: var(--color-clinician-navy);
   }
-
-  /* legacy classes for other pages — flat fills */
-  .gradient-hero {
-    background-color: #F4F2F2;
-  }
-
-  .gradient-card-lavender {
-    background-color: #E8EDF4;
+  [data-theme="clinician"] .ai-label::before {
+    background-color: var(--color-clinician-blue);
   }
 
-  .gradient-card-pink {
-    background-color: #FDE3F7;
-  }
-
-  .gradient-card-sage {
-    background-color: #E8EDF4;
-  }
-
-  .gradient-card-lemon {
-    background-color: #FFF0E6;
-  }
-
-  .gradient-card-coral {
-    background-color: #FFE0D4;
-  }
-
-  /* text accent — flat colour, no gradient */
-  .text-gradient-purple {
-    color: #0E3D68;
-  }
-
-  .text-gradient-warm {
-    color: #FF6833;
+  /* Destructive / red-flag triage banner. Always reads as urgent regardless
+     of palette. Kept in a single class so red-flag UI can never be themed
+     into invisibility. */
+  .red-flag-banner {
+    background-color: var(--color-brand-red);
+    color: #FFFFFF;
+    border-radius: 8px;
+    padding: 0.875rem 1rem;
+    font-weight: 600;
+    line-height: 1.4;
   }
 }

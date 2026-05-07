@@ -1,80 +1,212 @@
-"use client";
-
 import Link from "next/link";
-import { ArrowRight, FlaskConical, Heart, ShieldCheck } from "lucide-react";
+import { PetalBloom, RibbonLoop, Arches } from "@/components/illustrations";
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#F0F4F8] flex flex-col items-center justify-center px-6 py-12">
-
-      {/* Brand */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center gap-2.5 mb-4">
-          <div className="h-9 w-9 rounded bg-[#0057FF] flex items-center justify-center shrink-0">
-            <FlaskConical className="h-5 w-5 text-white" />
+    <>
+      {/* ────────── Hero ────────── */}
+      <section className="relative overflow-hidden bg-[var(--color-brand-cream)]">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-20 pb-28 grid lg:grid-cols-12 gap-10 items-center">
+          <div className="lg:col-span-7 relative z-10">
+            <p className="text-sm uppercase tracking-[0.22em] text-[var(--color-brand-stone)] mb-6">
+              Endo · pelvic-health intelligence
+            </p>
+            <h1
+              className="font-display font-extrabold text-[var(--color-brand-aubergine)] leading-[1.04] tracking-[-0.025em] mb-8"
+              style={{ fontSize: "clamp(2.75rem, 6vw, 5rem)" }}
+            >
+              Your record, in your{" "}
+              <span className="text-[var(--color-brand-clay)]">words</span>.
+              <br />
+              Their consult, in <span className="text-[var(--color-brand-plum)]">thirty seconds</span>.
+            </h1>
+            <p className="text-lg sm:text-xl text-[var(--color-brand-stone)] leading-relaxed max-w-2xl mb-10">
+              A longitudinal record for endometriosis and adenomyosis. Speak
+              to it about how you feel; share a clinician-grade summary when
+              you need to. Decision support — never a diagnosis.
+            </p>
+            <div className="flex flex-wrap gap-3 items-center">
+              <Link
+                href="/signin?role=patient"
+                className="inline-flex items-center justify-center px-6 py-3.5 rounded-[12px] bg-[var(--color-brand-clay)] text-white font-semibold hover:bg-[var(--color-brand-clay-deep)] transition-colors"
+              >
+                I&apos;m a patient
+              </Link>
+              <Link
+                href="/signin?role=clinician"
+                className="inline-flex items-center justify-center px-6 py-3.5 rounded-[12px] bg-[var(--color-brand-aubergine)] text-white font-semibold hover:opacity-90 transition-opacity"
+              >
+                I&apos;m a clinician
+              </Link>
+              <Link
+                href="/portal"
+                className="text-sm font-semibold text-[var(--color-brand-stone)] hover:text-[var(--color-brand-aubergine)] underline-offset-4 hover:underline ml-1"
+              >
+                or browse the demo →
+              </Link>
+            </div>
           </div>
-          <span className="font-display text-2xl font-bold text-[#111827] tracking-tight">EndoLink</span>
+
+          <div className="lg:col-span-5 relative">
+            <PetalBloom
+              ariaLabel="Endo brand bloom"
+              className="w-full max-w-[480px] mx-auto"
+            />
+          </div>
         </div>
-        <p className="text-[#374151] text-base max-w-sm mx-auto leading-relaxed">
-          Endometriosis Clinical Decision Support — NICE NG73 aligned risk stratification and patient management.
+
+        {/* Decorative ribbon at the bottom edge */}
+        <div className="absolute -bottom-12 left-0 right-0 pointer-events-none opacity-60">
+          <RibbonLoop className="w-full h-32" />
+        </div>
+      </section>
+
+      {/* ────────── Three pillars ────────── */}
+      <section className="bg-white py-20 lg:py-28 px-6 lg:px-10">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-sm uppercase tracking-[0.22em] text-[var(--color-brand-stone)] mb-3">
+            How Endo earns trust
+          </p>
+          <h2
+            className="font-display font-extrabold text-[var(--color-brand-aubergine)] leading-[1.1] tracking-[-0.02em] mb-12 max-w-3xl"
+            style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}
+          >
+            Built to a regulated standard, written for the people who&apos;ll use it.
+          </h2>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            <Pillar
+              eyebrow="Audited"
+              title="Every AI call, on the record"
+              body="Hash-chained, append-only. Tamper-evident. Patients can read their own audit trail; clinicians read the rows on records they hold consent for."
+            />
+            <Pillar
+              eyebrow="Cited"
+              title="Every claim, sourced"
+              body="Clinical claims trace back to the entry, the document, or the NICE NG73 recommendation that produced them. Nothing is invented."
+            />
+            <Pillar
+              eyebrow="Reviewable"
+              title="Nothing is final without a human"
+              body="Outputs are flagged for clinician review. Endo never produces a diagnosis. Red-flag triage is unambiguous and never softened."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* ────────── Two paths ────────── */}
+      <section className="bg-[var(--color-brand-cream)] py-20 lg:py-28 px-6 lg:px-10">
+        <div className="max-w-7xl mx-auto">
+          <h2
+            className="font-display font-extrabold text-[var(--color-brand-aubergine)] leading-[1.1] tracking-[-0.02em] mb-3 max-w-3xl"
+            style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}
+          >
+            One record. Two ways to read it.
+          </h2>
+          <p className="text-lg text-[var(--color-brand-stone)] max-w-2xl mb-12">
+            The patient view and the clinician view are generated from the
+            same underlying data — never two different stories.
+          </p>
+
+          <div className="grid lg:grid-cols-2 gap-8">
+            <PathCard
+              eyebrow="For patients"
+              title="The Patient Portal"
+              body="Speak about how you feel. Track your cycle. Build a record you can share with a clinician on your terms."
+              ctaLabel="Open patient portal"
+              href="/portal"
+              accentClass="bg-[var(--color-brand-clay)]"
+              hoverClass="hover:border-[var(--color-brand-clay)]"
+              illustration={
+                <Arches className="w-40 h-40 absolute -right-6 -bottom-6 opacity-90" />
+              }
+            />
+            <PathCard
+              eyebrow="For clinicians"
+              title="The Rapid Answer Panel"
+              body="The salient history at a glance. Pre-extracted answers to the standard endometriosis questions, each with a source link. Designed for a thirty-second consult window."
+              ctaLabel="Open clinician view"
+              href="/cdss"
+              accentClass="bg-[var(--color-brand-aubergine)]"
+              hoverClass="hover:border-[var(--color-brand-aubergine)]"
+              illustration={null}
+              dark
+            />
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function Pillar({
+  eyebrow,
+  title,
+  body,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="bg-[var(--color-brand-cream)] rounded-[18px] p-8">
+      <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-brand-clay)] font-semibold mb-3">
+        {eyebrow}
+      </p>
+      <h3 className="font-display text-2xl font-bold text-[var(--color-brand-aubergine)] leading-tight mb-3">
+        {title}
+      </h3>
+      <p className="text-[var(--color-brand-stone)] leading-relaxed">{body}</p>
+    </div>
+  );
+}
+
+function PathCard({
+  eyebrow,
+  title,
+  body,
+  ctaLabel,
+  href,
+  accentClass,
+  hoverClass,
+  illustration,
+  dark,
+}: {
+  eyebrow: string;
+  title: string;
+  body: string;
+  ctaLabel: string;
+  href: string;
+  accentClass: string;
+  hoverClass: string;
+  illustration: React.ReactNode;
+  dark?: boolean;
+}) {
+  const bg = dark ? "bg-[var(--color-brand-aubergine)]" : "bg-white";
+  const fg = dark ? "text-white" : "text-[var(--color-brand-aubergine)]";
+  const subtle = dark ? "text-white/75" : "text-[var(--color-brand-stone)]";
+  return (
+    <Link
+      href={href}
+      className={`group relative overflow-hidden ${bg} ${fg} border border-[var(--color-brand-sand)] ${hoverClass} rounded-[24px] p-10 transition-colors min-h-[320px] flex flex-col justify-between`}
+    >
+      <div className="relative z-10">
+        <p className={`text-xs uppercase tracking-[0.22em] font-semibold mb-3 ${dark ? "text-white/70" : "text-[var(--color-brand-clay)]"}`}>
+          {eyebrow}
         </p>
-        <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[#0057FF] bg-[#EEF3FF] border border-[#C8D4E0] rounded px-2.5 py-1">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          Demo mode — no authentication required
+        <h3 className="font-display text-3xl font-extrabold leading-tight mb-4 max-w-md">
+          {title}
+        </h3>
+        <p className={`${subtle} leading-relaxed max-w-md`}>{body}</p>
+      </div>
+      <div className="relative z-10 mt-8">
+        <span
+          className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-[10px] font-semibold ${accentClass} text-white group-hover:gap-3 transition-all`}
+        >
+          {ctaLabel} →
         </span>
       </div>
-
-      {/* Role selector */}
-      <div className="w-full max-w-2xl">
-        <p className="text-xs font-bold text-[#6B7280] uppercase tracking-widest text-center mb-4">
-          How are you accessing EndoLink today?
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-          {/* Clinician card */}
-          <Link href="/login" className="group block">
-            <div className="h-full bg-white border-2 border-[#C8D4E0] rounded group-hover:border-[#0057FF] group-hover:shadow-md transition-all duration-150 p-6 flex flex-col">
-              <div className="h-10 w-10 rounded bg-[#EEF3FF] flex items-center justify-center mb-4">
-                <FlaskConical className="h-5 w-5 text-[#0057FF]" />
-              </div>
-              <h2 className="font-display text-lg font-bold text-[#111827] mb-1">
-                Medical Professional
-              </h2>
-              <p className="text-sm text-[#6B7280] leading-relaxed flex-1 mb-5">
-                Access the clinical dashboard for risk stratification, biomarker tracking, and patient management.
-              </p>
-              <div className="flex items-center gap-1.5 text-sm font-semibold text-[#0057FF] group-hover:gap-2.5 transition-all">
-                Enter CDSS
-                <ArrowRight className="h-4 w-4" />
-              </div>
-            </div>
-          </Link>
-
-          {/* Patient card */}
-          <Link href="/portal" className="group block">
-            <div className="h-full bg-white border-2 border-[#C8D4E0] rounded group-hover:border-[#0057FF] group-hover:shadow-md transition-all duration-150 p-6 flex flex-col">
-              <div className="h-10 w-10 rounded bg-[#EEF3FF] flex items-center justify-center mb-4">
-                <Heart className="h-5 w-5 text-[#0057FF]" />
-              </div>
-              <h2 className="font-display text-lg font-bold text-[#111827] mb-1">
-                Patient
-              </h2>
-              <p className="text-sm text-[#6B7280] leading-relaxed flex-1 mb-5">
-                Log your symptoms, track your cycle, and share data with your clinical care team.
-              </p>
-              <div className="flex items-center gap-1.5 text-sm font-semibold text-[#0057FF] group-hover:gap-2.5 transition-all">
-                Patient Portal
-                <ArrowRight className="h-4 w-4" />
-              </div>
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      {/* Footer */}
-      <p className="mt-10 text-xs text-[#6B7280] text-center max-w-sm">
-        EndoLink is a clinical decision support tool. It does not replace clinical judgement. Always follow local guidelines and protocols.
-      </p>
-    </div>
+      {illustration}
+    </Link>
   );
 }
