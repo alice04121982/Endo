@@ -91,8 +91,7 @@ export default async function JournalPage() {
             Journal
           </p>
           <h1
-            className="font-display font-extrabold text-[var(--color-brand-aubergine)] tracking-[-0.02em] leading-[1.05] mb-3"
-            style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}
+            className="font-display text-2xl font-semibold tracking-tight text-[var(--color-brand-aubergine)] mb-3"
           >
             {isAuthedPatient ? "Your journal" : "Demo journal"}
           </h1>

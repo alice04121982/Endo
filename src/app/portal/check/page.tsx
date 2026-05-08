@@ -56,8 +56,7 @@ export default function CheckPage() {
         Urgent symptom check
       </p>
       <h1
-        className="font-display font-extrabold text-[var(--color-brand-aubergine)] tracking-[-0.02em] leading-[1.05] mb-3"
-        style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}
+        className="font-display text-2xl font-semibold tracking-tight text-[var(--color-brand-aubergine)] mb-3"
       >
         Anything urgent right now?
       </h1>

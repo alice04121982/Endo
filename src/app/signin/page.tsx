@@ -27,8 +27,7 @@ export default async function SignInPage({
             Check your email
           </p>
           <h1
-            className="font-display font-extrabold text-[var(--color-brand-aubergine)] tracking-[-0.02em] leading-[1.1] mb-4"
-            style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)" }}
+            className="font-display text-xl font-semibold tracking-tight text-[var(--color-brand-aubergine)] mb-3"
           >
             We&apos;ve sent you a link
           </h1>
@@ -57,8 +56,7 @@ export default async function SignInPage({
           Sign in to Endo
         </p>
         <h1
-          className="font-display font-extrabold text-[var(--color-brand-aubergine)] tracking-[-0.02em] leading-[1.05] mb-3"
-          style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}
+          className="font-display text-2xl font-semibold tracking-tight text-[var(--color-brand-aubergine)] mb-3"
         >
           No password. Just your email.
         </h1>

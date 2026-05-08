@@ -43,8 +43,7 @@ export default async function CodeErrorPage({
           Access link
         </p>
         <h1
-          className="font-display font-extrabold text-[var(--color-brand-aubergine)] tracking-[-0.02em] leading-[1.1] mb-4"
-          style={{ fontSize: "clamp(1.75rem, 3.5vw, 2.5rem)" }}
+          className="font-display text-xl font-semibold tracking-tight text-[var(--color-brand-aubergine)] mb-3"
         >
           {copy.title}
         </h1>

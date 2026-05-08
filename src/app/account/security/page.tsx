@@ -26,8 +26,7 @@ export default async function SecurityPage({
         Account · Security
       </p>
       <h1
-        className="font-display font-extrabold text-[var(--color-brand-aubergine)] tracking-[-0.02em] leading-[1.05] mb-4"
-        style={{ fontSize: "clamp(2rem, 4vw, 3rem)" }}
+        className="font-display text-2xl font-semibold tracking-tight text-[var(--color-brand-aubergine)] mb-3"
       >
         Passkeys
       </h1>
