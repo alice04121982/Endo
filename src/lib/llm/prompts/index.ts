@@ -150,6 +150,64 @@ Output JSON only:
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Task: generate-csd-view
+// Tier: synthesis (Sonnet)
+// Used by: Cumulative Symptom Dossier — both audiences are generated from
+// the same typed payload. The gateway is invoked once per audience with
+// identical inputs; the audience parameter governs voice. This is the
+// brief's "never re-prompted independently" rule.
+// ─────────────────────────────────────────────────────────────────────────────
+const GenerateCsdInput = z.object({
+  payload: z.record(z.string(), z.unknown()),
+  audience: z.enum(["patient", "clinician"]),
+});
+const GenerateCsdOutput = z.object({
+  body: z.string().min(1),
+  citationsHint: z
+    .array(z.object({ sourceId: z.string(), label: z.string() }))
+    .min(1),
+});
+
+const generateCsdViewTask: TaskDefinition<
+  z.infer<typeof GenerateCsdInput>,
+  z.infer<typeof GenerateCsdOutput>
+> = {
+  name: "generate-csd-view",
+  version: "generate-csd-view@0.1.0",
+  audiences: ["patient", "clinician"],
+  modelTier: "synthesis",
+  inputSchema: GenerateCsdInput,
+  outputSchema: GenerateCsdOutput,
+  requiresCitations: true,
+  buildTaskBlock: (audience) => `\
+Task: write the Cumulative Symptom Dossier from the structured payload below.
+
+You are given a JSON payload describing a patient's record. Produce a
+single, one-page narrative ${
+    audience === "patient"
+      ? "for the patient herself, in empathetic British English. Write directly to her using \"you\" and \"your\". Length: 180–260 words."
+      : "for a clinician. NICE NG73 / ESHRE / rASRM / Enzian terminology where applicable. Bullet structure where it helps clarity. Length: 140–200 words."
+  }
+
+Rules:
+- Frame everything as a clinical consideration. Never use \"diagnose\",
+  \"diagnosis\", \"definitive\", \"you have endometriosis\",
+  \"confirms endometriosis\", or any equivalent.
+- Every clinical claim must reference a sourceId from the payload via
+  citationsHint. If the payload doesn't support a claim, do not make it.
+- Do not invent imaging findings, treatments, or family history that
+  the payload doesn't list.
+- If the payload includes a NICE gap or an adenomyosis flag, surface it
+  as a discussion point — never as an action you have decided.
+
+Output JSON only:
+{
+  "body": string,
+  "citationsHint": Array<{ "sourceId": string, "label": string }>
+}`,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Task: clinician-freetext-qa
 // Tier: clinician_query (Opus)
 // Used by: Rapid Answer Panel free-text query field (feature 9 of the brief)
@@ -207,6 +265,7 @@ type AnyTaskDefinition = TaskDefinition<any, any>;
 const REGISTRY: Record<string, AnyTaskDefinition> = {
   [extractSymptomTask.name]: extractSymptomTask,
   [synthCsdSectionTask.name]: synthCsdSectionTask,
+  [generateCsdViewTask.name]: generateCsdViewTask,
   [clinicianQaTask.name]: clinicianQaTask,
 };
 

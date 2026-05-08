@@ -6,6 +6,48 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-08 — Cumulative Symptom Dossier (Build Tracker feature 5, chunk 1)
+
+- Migration `006_csd_renders.sql` — cache table keyed on
+  (patient, audience, payload_hash) for byte-stable narrative
+  reuse. Service-role-only inserts; patient self-read; clinician
+  read joined through active `consent_tokens`. No UPDATE / DELETE
+  policies — append-only by convention.
+- Typed `CSDPayload` (Zod) gathered from DB: cycle context,
+  recent journal entries, slots for documents / NICE gaps /
+  adenomyosis flag (populated when features 4, 6, 7 land).
+- New gateway task `generate-csd-view@0.1.0` — Sonnet tier, accepts
+  `(payload, audience)`, audience parameter governs voice, payload
+  is identical between calls so the brief's "never re-prompted
+  independently" rule holds.
+- Banned-term lint extension on CSD bodies — refuses
+  &ldquo;diagnose&rdquo;, &ldquo;definitive&rdquo;, &ldquo;you have
+  endometriosis/adenomyosis&rdquo;, &ldquo;confirms
+  endometriosis/adenomyosis&rdquo;. Lint matches log a row with
+  outcome `banned_term_lint`; the body never surfaces.
+- Canonical-JSON SHA-256 hash of the payload is the cache key.
+  Same payload twice → same cached body → byte-stable PDF when
+  export lands.
+- Real `/portal/dossier` (live cached read + Regenerate button
+  that rebuilds payload, calls gateway for both audiences, caches
+  both); falls back to mock for anonymous demo.
+- Real `/cdss/dossier` (live cached read for the consent-active
+  patient); surfaces "patient hasn't generated a current dossier"
+  state when nothing's cached.
+- ADR 0007 captures the decision and what's deferred.
+
+### Deferred (still open on Build Tracker feature 5)
+
+- PDF export (button present, disabled — narrative is byte-stable
+  so PDF generation is mechanical).
+- FHIR Bundle (UK Core) export.
+- Per-claim source resolution UI (citations are listed; clicking
+  through lands when features 4 and 9 produce source pages).
+- Auto-regenerate on meaningful data update (manual button only
+  for now).
+- Live adeno flag + NICE gaps side-panels — these still render
+  from mock until features 6 and 7 land.
+
 ### Added — 2026-05-08 — Voice-first pain journal (Build Tracker feature 2, chunk 1)
 
 - Migration `005_journal_entries.sql` — `cycle_phase`,
