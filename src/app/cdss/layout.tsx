@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getActiveClinicianAccess } from "@/lib/auth/consent";
 import { countOwnPasskeys } from "@/lib/auth/passkeys";
+import { listActiveRedFlagEventsForPatient } from "@/lib/clinical/red-flags";
+import { RedFlagBannerStack } from "@/components/red-flag-banner";
 
 const NAV = [
   { href: "/cdss", label: "Rapid Answer" },
@@ -29,6 +31,12 @@ export default async function CdssLayout({
   if (passkeyMissing) {
     redirect("/account/security?required=1");
   }
+
+  // Red-flag events on the consent-active patient — surface above the
+  // patient-context strip so they're impossible to miss.
+  const activeFlags = access
+    ? await listActiveRedFlagEventsForPatient(access.token.patientSubjectId)
+    : [];
 
   // Display name resolution
   const clinicianLabel = signedIn ? user.displayName : "Demo · Ms R Patel";
@@ -80,6 +88,9 @@ export default async function CdssLayout({
             )}
           </nav>
         </div>
+
+        {/* Red-flag banner — appears above patient-context strip */}
+        <RedFlagBannerStack events={activeFlags} audience="clinician" />
 
         {/* Patient-context strip — shown when a consent token is active */}
         {signedIn && access && (

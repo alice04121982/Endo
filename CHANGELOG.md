@@ -6,6 +6,43 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-08 — Red-flag triage rule engine (Build Tracker feature 8, chunk 1)
+
+- Migration `007_red_flag_events.sql` — append-only audit table.
+  Structural columns (`rule_id`, `rule_pack_version`, `inputs`,
+  `severity`, `created_at`, `patient_subject_id`) immutable after
+  insert via `BEFORE UPDATE` trigger. RLS for patient self-read /
+  -update; clinician read joined through active consent tokens;
+  service-role-only inserts; no delete policy.
+- `src/lib/clinical/red-flags.ts` — versioned rule pack
+  `red-flags@2026-05-08.r1`. Five rules: heavy acute bleeding,
+  ovarian torsion suspect, bowel obstruction suspect, severe
+  ureteric involvement, ectopic/pregnancy complication. Pure
+  functions; rule-pack version stamped on every fire.
+- `/portal/check` symptom-check page — six yes/no questions; runs
+  the engine; persists fires; renders the rule's `patientHeadline`
+  + `patientAction` verbatim with region-aware UK resources (NHS
+  111, A&E search). Copy is never AI-rewritten.
+- `src/components/red-flag-banner.tsx` + integration into both
+  layouts. Banner appears above patient-context strip on both
+  `/portal/*` and `/cdss/*` whenever an active event exists for the
+  current patient. Cannot be auto-dismissed; only the patient can
+  mark `no_longer_relevant` from `/portal/check`.
+- "Urgent check" link added to patient nav.
+- ADR 0010 captures the decision — rule-based, no LLM in trigger or
+  action, banner cannot be themed away, append-only audit.
+
+### Deferred (still open on Build Tracker feature 8)
+
+- Multi-region urgent-care resources (UK hard-coded for now).
+- Optional LLM-rendered patient rationale (gateway-based, with
+  AI-extracted pill) — static rationale text covers the MVP.
+- Mirroring red-flag fires into `llm_audit_log` for the unified
+  audit view.
+- Background scan on journal save (currently fires only via the
+  symptom-check page).
+- Patient SMS/email notification on fire; clinician push.
+
 ### Added — 2026-05-08 — NICE NG73 compliance prompter (Build Tracker feature 6, chunk 1)
 
 - `src/lib/clinical/nice-rules.ts` — versioned rule pack

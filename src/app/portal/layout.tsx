@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { listActiveRedFlagEventsForCurrentPatient } from "@/lib/clinical/red-flags";
+import { RedFlagBannerStack } from "@/components/red-flag-banner";
 
 const NAV = [
   { href: "/portal", label: "Today" },
@@ -8,6 +10,7 @@ const NAV = [
   { href: "/portal/uploads", label: "Documents" },
   { href: "/portal/dossier", label: "Dossier" },
   { href: "/portal/share", label: "Share" },
+  { href: "/portal/check", label: "Urgent check" },
 ];
 
 export default async function PortalLayout({
@@ -18,6 +21,9 @@ export default async function PortalLayout({
   const user = await getCurrentUser();
   const signedIn = user?.role === "patient";
   const displayName = signedIn ? user.displayName : "Demo · Emma Clarke";
+  const activeFlags = signedIn
+    ? await listActiveRedFlagEventsForCurrentPatient()
+    : [];
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)]">
@@ -64,6 +70,7 @@ export default async function PortalLayout({
           </div>
         </div>
       </header>
+      <RedFlagBannerStack events={activeFlags} audience="patient" />
       <main>{children}</main>
     </div>
   );
