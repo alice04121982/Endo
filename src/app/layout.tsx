@@ -1,51 +1,31 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { Toaster } from "@/components/ui/sonner";
-import { QueryProvider } from "@/components/providers/query-provider";
-import { EntriesProvider } from "@/lib/entries-store";
-import { CdssProvider } from "@/lib/cdss-store";
-import { ClinicianProvider } from "@/lib/clinician-store";
-import { ComplianceProvider } from "@/lib/compliance-store";
+import { AI_DISCLAIMER } from "@/lib/llm/disclaimer";
 import "./globals.css";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-});
-
 export const metadata: Metadata = {
-  title: "EndoLink | Clinical Decision Support System",
+  title: "Endo — pelvic-health intelligence",
   description:
-    "Endometriosis risk stratification integrating biomarkers, lab investigations, and clinical history. NICE NG73 aligned.",
+    "Longitudinal, clinician-grade record for endometriosis and adenomyosis. Decision support, NICE NG73 aligned. Not a diagnostic device.",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="en"
-      className={`${outfit.variable} h-full antialiased`}
-    >
-      <body className="bg-background text-foreground">
-        <QueryProvider>
-          <EntriesProvider>
-            <ClinicianProvider>
-              <ComplianceProvider>
-              <CdssProvider>
-                <TooltipProvider>
-                  {children}
-                  <Toaster />
-                </TooltipProvider>
-              </CdssProvider>
-              </ComplianceProvider>
-            </ClinicianProvider>
-          </EntriesProvider>
-        </QueryProvider>
+    <html lang="en" className="h-full antialiased">
+      <body className="bg-background text-foreground min-h-screen flex flex-col">
+        <main className="flex-1">{children}</main>
+        <footer
+          role="contentinfo"
+          aria-label="Regulatory disclaimer"
+          className="disclaimer-bar px-6 py-3"
+        >
+          <p className="max-w-7xl mx-auto">
+            <span className="font-semibold">Decision support, not a diagnosis.</span>{" "}
+            {AI_DISCLAIMER} Endo is regulated as Class IIa Software as a Medical
+            Device under UK MDR 2002.
+          </p>
+        </footer>
       </body>
     </html>
   );
