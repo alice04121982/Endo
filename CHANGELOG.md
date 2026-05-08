@@ -6,6 +6,36 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-08 — Rapid Answer Panel real implementation (Build Tracker feature 9, chunk 1)
+
+- `src/lib/clinical/rapid-answer.ts` — rule-based derivation engine
+  for the brief's 13 standard endometriosis history questions. Pure
+  functions over journal entries + CSDPayload; no LLM in the trigger
+  path. Inline flags for adenomyosis consideration / MRI gap /
+  treatment escalation.
+- `/cdss/page.tsx` rewritten: branches on consent. With active
+  consent → live panel (fetches journal via service-role, runs
+  derivation, surfaces rows + flags + consent-token meta). Without
+  → demo panel (existing mock-data layout) so the public preview
+  stays reviewable.
+- Free-text query block (`freetext-query.tsx`) — real input wired
+  through the Opus-tier `clinician-freetext-qa` gateway task.
+  Server action builds the record snapshot via service-role from
+  the consent-active patient's profile + last 60 entries. Surfaces
+  answer + citations + audit row id under every result.
+- ADR 0008 captures the decision.
+
+### Deferred (still open on Build Tracker feature 9)
+
+- Clinician notes capture (requires `read_and_note` consent scope
+  and a notes surface).
+- Audit-log mirroring of panel loads (free-text queries are
+  already audited via the gateway).
+- Print stylesheet / "print this panel" action.
+- 2-second SLA instrumentation.
+- Per-citation source resolution UI (`/cdss/source/<id>`).
+- Live adenomyosis + NICE flag rows (still mock until features 6, 7).
+
 ### Added — 2026-05-08 — Cumulative Symptom Dossier (Build Tracker feature 5, chunk 1)
 
 - Migration `006_csd_renders.sql` — cache table keyed on
