@@ -4,6 +4,11 @@ import { getSupabaseServer, getSupabaseServiceRole } from "@/lib/supabase/server
 import { callGateway } from "@/lib/llm/gateway";
 import type { Citation } from "@/lib/llm/types";
 import { listOwnJournalEntries, getPatientCycleContext } from "./journal";
+import {
+  defaultEmptyInputs,
+  evaluateNiceRules,
+  visibleNicePrompts,
+} from "./nice-rules";
 
 // Cumulative Symptom Dossier — typed payload + render service.
 //
@@ -92,6 +97,19 @@ export async function buildCSDPayloadForCurrentPatient(): Promise<CSDPayload | n
   const ctx = await getPatientCycleContext();
   const entries = await listOwnJournalEntries(60);
 
+  // Evaluate the NICE NG73 rule pack over the patient's record. Only the
+  // gap / partial prompts go into the payload — satisfied and not-applicable
+  // ones add no value to the dossier. awaiting_data prompts are excluded
+  // until their dependent feature lands and they collapse to a definite
+  // status.
+  const niceAll = evaluateNiceRules(defaultEmptyInputs(entries));
+  const niceGapsForPayload = visibleNicePrompts(niceAll).map((p) => ({
+    recommendationId: p.recommendationId,
+    recommendationLabel: p.recommendationLabel,
+    patientText: p.patientText ?? "",
+    clinicianText: p.clinicianText ?? "",
+  }));
+
   return {
     patient: {
       age: null, // To populate from a future profile-edit page.
@@ -112,7 +130,7 @@ export async function buildCSDPayloadForCurrentPatient(): Promise<CSDPayload | n
       sourceId: e.id,
     })),
     uploadedDocuments: [],
-    niceGaps: [],
+    niceGaps: niceGapsForPayload,
     adenomyosisFlag: null,
   };
 }

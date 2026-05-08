@@ -2,6 +2,11 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getActiveClinicianAccess } from "@/lib/auth/consent";
 import { deriveRapidAnswers, type DerivedAnswer } from "@/lib/clinical/rapid-answer";
+import {
+  defaultEmptyInputs,
+  evaluateNiceRules,
+  visibleNicePrompts,
+} from "@/lib/clinical/nice-rules";
 import { getSupabaseServiceRole } from "@/lib/supabase/server";
 import { FreeTextQuery } from "./freetext-query";
 import {
@@ -107,6 +112,13 @@ async function LivePanel({
   const grouped = groupByGroup(answers);
   const flags = collectFlags(answers);
 
+  // Live NICE NG73 prompts — gap / partial only — surface above the rows
+  // alongside the journal-derived flags. Each prompt carries the rule pack
+  // version (NICE_RULE_PACK_VERSION) for audit purposes.
+  const niceVisible = visibleNicePrompts(
+    evaluateNiceRules(defaultEmptyInputs(entries)),
+  );
+
   return (
     <div className="max-w-5xl mx-auto px-6 lg:px-10 py-8">
       <header className="border-b border-border pb-4 mb-6">
@@ -139,10 +151,15 @@ async function LivePanel({
         </p>
       </header>
 
-      {flags.length > 0 && (
+      {(flags.length > 0 || niceVisible.length > 0) && (
         <section className="mb-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
           {flags.map((f) => (
             <FlagInline key={f}>{FLAG_INLINE[f]}</FlagInline>
+          ))}
+          {niceVisible.map((p) => (
+            <FlagInline key={p.recommendationId} variant="nice">
+              {p.recommendationLabel}
+            </FlagInline>
           ))}
         </section>
       )}
@@ -357,12 +374,25 @@ function DemoGrouped({ answers }: { answers: RapidAnswer[] }) {
   );
 }
 
-function FlagInline({ children }: { children: React.ReactNode }) {
+function FlagInline({
+  children,
+  variant = "danger",
+}: {
+  children: React.ReactNode;
+  variant?: "danger" | "nice";
+}) {
+  const colour = variant === "nice"
+    ? "var(--color-clinician-blue)"
+    : "var(--color-brand-red)";
   return (
-    <span className="inline-flex items-center gap-1.5 text-[var(--color-brand-red)] font-semibold">
+    <span
+      className="inline-flex items-center gap-1.5 font-semibold"
+      style={{ color: colour }}
+    >
       <span
         aria-hidden="true"
-        className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-brand-red)]"
+        className="inline-block h-1.5 w-1.5 rounded-full"
+        style={{ background: colour }}
       />
       {children}
     </span>

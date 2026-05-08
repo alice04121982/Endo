@@ -3,6 +3,12 @@ import {
   readLatestRender,
 } from "@/lib/clinical/csd";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { listOwnJournalEntries } from "@/lib/clinical/journal";
+import {
+  defaultEmptyInputs,
+  evaluateNiceRules,
+  visibleNicePrompts,
+} from "@/lib/clinical/nice-rules";
 import {
   dossierPatientView as MOCK_VIEW,
   adenomyosisFlag,
@@ -13,7 +19,6 @@ import { RegenerateButton } from "./regenerate-button";
 export default async function DossierPage() {
   const user = await getCurrentUser();
   const isAuthedPatient = user?.role === "patient";
-  const niceGaps = nicePrompts.filter((p) => p.status !== "satisfied");
 
   // Live render path
   let body = MOCK_VIEW.body;
@@ -24,7 +29,23 @@ export default async function DossierPage() {
   let live = false;
   let empty = false;
 
+  // NICE prompts surface live when authed; otherwise the mock prompts
+  // demonstrate the visual.
+  let liveNiceGapItems: {
+    recommendationId: string;
+    recommendationLabel: string;
+    patientText: string;
+  }[] = [];
+
   if (isAuthedPatient) {
+    const entries = await listOwnJournalEntries(60);
+    const prompts = evaluateNiceRules(defaultEmptyInputs(entries));
+    liveNiceGapItems = visibleNicePrompts(prompts).map((p) => ({
+      recommendationId: p.recommendationId,
+      recommendationLabel: p.recommendationLabel,
+      patientText: p.patientText ?? "",
+    }));
+
     const payload = await buildCSDPayloadForCurrentPatient();
     if (!payload || payload.recentEntries.length === 0) {
       empty = true;
@@ -43,6 +64,9 @@ export default async function DossierPage() {
       }
     }
   }
+
+  // What renders as the NICE panel: live results when authed, mock when not.
+  const mockNiceGaps = nicePrompts.filter((p) => p.status !== "satisfied");
 
   const generated = new Date(generatedAt);
 
@@ -131,14 +155,18 @@ export default async function DossierPage() {
             </section>
           )}
 
-          {/* NICE gaps — mock-only for now until feature 6 lands */}
-          {!live && niceGaps.length > 0 && (
+          {/* NICE gaps — live when authed, mock-style for anonymous demo */}
+          {(live ? liveNiceGapItems.length > 0 : mockNiceGaps.length > 0) && (
             <section className="bg-white border border-[var(--color-brand-sand)] rounded-[14px] p-6">
               <h2 className="font-display text-lg font-bold text-[var(--color-brand-aubergine)] mb-3">
                 What you might want to ask your clinician
               </h2>
               <ul className="space-y-3">
-                {niceGaps.map((p) => (
+                {(live ? liveNiceGapItems : mockNiceGaps.map((p) => ({
+                  recommendationId: p.recommendationId,
+                  recommendationLabel: p.recommendationLabel,
+                  patientText: p.patientText,
+                }))).map((p) => (
                   <li
                     key={p.recommendationId}
                     className="border-l-2 border-[var(--color-brand-clay)] pl-3"

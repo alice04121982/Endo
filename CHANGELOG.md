@@ -6,6 +6,42 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-08 — NICE NG73 compliance prompter (Build Tracker feature 6, chunk 1)
+
+- `src/lib/clinical/nice-rules.ts` — versioned rule pack
+  (`NICE_RULE_PACK_VERSION = "nice-ng73@2024-11-01.r1"`). Pure
+  functions over the patient's record. Five initial rules: §1.5.2
+  (TVS), §1.5.3 (MRI when TVS inconclusive), §1.4.6 (hormonal
+  escalation), §1.6.1 (specialist referral), §1.7.1 (fertility
+  specialist input).
+- Each prompt carries: `recommendationId`, dated label,
+  `rulePackVersion`, status (`satisfied` | `gap` | `partial` |
+  `not_applicable` | `awaiting_data`), and BOTH `patientText` and
+  `clinicianText` from a single rule fire.
+- Symptom-counting helper derives the brief's six endo-suggestive
+  symptoms from journal entries; ≥3 triggers the TVS rule.
+- Severity-trend helper shared with `rapid-answer.ts` so trend
+  calls are deterministic and reused.
+- `/portal/dossier` NICE side-panel rebuilt to read live rule
+  output when authed; falls back to mock prompts for anonymous
+  demo.
+- Rapid Answer Panel (live branch) adds NICE-blue inline flag
+  chips above the rows alongside the red journal flags.
+- CSD payload (`buildCSDPayloadForCurrentPatient`) populates
+  `niceGaps` so the LLM-rendered narrative can reference rule
+  fires as discussion points without inventing them.
+- ADR 0009 captures the decision.
+
+### Deferred (still open on Build Tracker feature 6)
+
+- Acknowledged-by-clinician state with reason capture.
+- TVS / MRI inconclusive parsing from uploaded documents (lands
+  with feature 4).
+- Treatment trial history table for §1.4.6 inputs.
+- Fertility intent capture UI for §1.7.1 inputs.
+- Mirroring rule-only fires (no LLM call) into `llm_audit_log`.
+- Rule-pack config UI for clinical leadership.
+
 ### Added — 2026-05-08 — Rapid Answer Panel real implementation (Build Tracker feature 9, chunk 1)
 
 - `src/lib/clinical/rapid-answer.ts` — rule-based derivation engine
