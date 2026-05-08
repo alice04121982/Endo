@@ -6,6 +6,49 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-08 — Voice-first pain journal (Build Tracker feature 2, chunk 1)
+
+- Migration `005_journal_entries.sql` — `cycle_phase`,
+  `bleeding_heaviness`, `journal_source` enums, `journal_entries`
+  table with FHIR-shaped fields, RLS for patient self-CRUD plus a
+  consent-token-gated read policy for clinicians; profile gets
+  `last_menstrual_period_start` and `average_cycle_length_days`.
+- Clinical helpers (rule-based, no LLM): `src/lib/clinical/cycle.ts`
+  computes cycle day + phase, scaling to the patient's average cycle
+  length. `src/lib/clinical/pbac.ts` implements Higham PBAC scoring
+  with published weights and the >100 HMB threshold.
+- Voice path: `extractFromTranscript` server action posts the
+  patient's transcript to the LLM gateway (Haiku tier,
+  `extract-symptom-from-voice` task), returns plain-English summary
+  + observations + audit-row id for the confirmation surface.
+- `/portal/journal/new` rebuilt as a real Web Speech API capture —
+  idle / recording (live transcript) / processing / confirm
+  (transcript + AI summary + observations + Save) / saving / saved /
+  error states. Cancels are explicit; nothing is saved without
+  patient confirmation; raw audio never leaves the device.
+- `/portal/journal/quick` quick-tap fallback — VAS slider, location
+  toggles, bowel/bladder toggles, dyspareunia tri-state, bleeding-
+  heaviness select, fatigue VAS, mood, notes. Same `journal_entries`
+  shape as voice; deterministic plain-English summary composed
+  client-side and saved to `patient_plain_summary`.
+- `/portal/journal` reads live entries when signed in (most recent
+  30); falls back to mock when anonymous so the demo keeps working.
+- `saveJournalEntry` server action computes cycle day + phase at
+  save time, persists with full provenance (audit id, model id,
+  prompt template version) when the source is voice.
+- ADR 0006 captures the decision and what's deferred.
+
+### Deferred (still open on Build Tracker feature 2)
+
+- Server-side Whisper-class fallback transcription when Web Speech
+  isn't available.
+- Auto-population of typed columns (`pain_vas`, `pain_locations`,
+  etc.) from the LLM's structured observations.
+- Bleeding heatmap evolution and per-cycle PBAC capture.
+- Cycle-context capture UI (LMP date, average length).
+- Mirroring journal save events into `llm_audit_log`.
+- Home dashboard live-data integration.
+
 ### Added — 2026-05-08 — WebAuthn passkeys (Build Tracker feature 1, chunk 2)
 
 - Migration `004_passkeys.sql` — `passkeys` table (credential id,
