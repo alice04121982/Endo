@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
   const requestedRole = url.searchParams.get("role");
+  const accessCode = url.searchParams.get("access");
   const supabase = await getSupabaseServer();
 
   if (code) {
@@ -37,6 +38,15 @@ export async function GET(request: NextRequest) {
   const role: Role =
     profile?.role ??
     (requestedRole === "clinician" ? "clinician" : "patient");
+
+  // If the clinician was redirected here from /access/<code> (i.e. they
+  // followed an access link before signing in), bounce them back to that
+  // route so the consent-token claim happens with the new session active.
+  if (accessCode && role === "clinician") {
+    return NextResponse.redirect(
+      new URL(`/access/${encodeURIComponent(accessCode)}`, url.origin),
+    );
+  }
 
   return NextResponse.redirect(new URL(homeForRole(role), url.origin));
 }

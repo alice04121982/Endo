@@ -6,6 +6,46 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-08 — Consent tokens (Build Tracker feature 1, chunk 3)
+
+- Migration `003_consent_tokens.sql` — `consent_scope` enum (read_only,
+  read_and_note), `consent_tokens` table, RLS policies (patient full
+  CRUD on own; clinician read of claimed; permissive update for
+  claim flow), `BEFORE UPDATE` trigger blocking un-revoke,
+  `is_consent_token_active(token_id, clinician_id)` helper.
+- Patient-side: real `/portal/share` page replaces the mock — issue
+  form (clinician email, scope, expiry), live list of active tokens
+  with copyable URL, revoke action. Server actions
+  `issueConsentToken` / `revokeConsentToken` Zod-validated.
+- Clinician-side: `/access/<code>` route handler validates the code,
+  signs in or claims, sets a server-only `endo_consent_token` cookie,
+  redirects to `/cdss`. Failure modes (invalid / expired / revoked /
+  claimed-by-another / wrong-role / not-signed-in) each surface a
+  named reason on `/access/code-error`.
+- Sign-in / callback honour `?access=<code>` so a clinician following
+  an access link before signing in completes the claim after the
+  magic-link round-trip.
+- Sign-out clears the consent cookie alongside the Supabase session.
+- Clinician layout shows a patient-context strip when a consent token
+  is active: patient display name, scope (Read & note / Read only),
+  expiry countdown, truncated consent-token id.
+- Helper `getActiveClinicianAccess()` in `src/lib/auth/consent.ts` —
+  validates cookie against DB on every read; cookie alone is never
+  authority.
+- ADR 0004 — consent tokens for patient → clinician access.
+
+### Deferred (still open on Build Tracker feature 1)
+
+- WebAuthn / passkey enrolment (chunk 2; mandatory for clinicians).
+- Audit-log instrumentation of consent lifecycle events
+  (issue / claim / revoke) — captured in the table itself; mirroring
+  to `llm_audit_log` lands with audit-completion (chunk 4).
+- Real RLS-gated patient data reads keyed on the consent token —
+  demo still renders mock data for clinicians until features 2–5
+  produce real data.
+- QR code rendering of the access link (link itself is copyable now).
+- Pen-test for horizontal privilege escalation.
+
 ### Added — 2026-05-07 — Auth foundation (Build Tracker feature 1, chunk 1)
 
 - Magic-link sign-in (`/signin`) with patient / clinician role radio.

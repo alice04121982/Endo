@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getActiveClinicianAccess } from "@/lib/auth/consent";
 
 const NAV = [
   { href: "/cdss", label: "Rapid Answer" },
@@ -16,7 +17,10 @@ export default async function CdssLayout({
 }) {
   const user = await getCurrentUser();
   const signedIn = user?.role === "clinician";
-  const displayName = signedIn ? user.displayName : "Demo · Ms R Patel";
+  const access = signedIn ? await getActiveClinicianAccess() : null;
+
+  // Display name resolution
+  const clinicianLabel = signedIn ? user.displayName : "Demo · Ms R Patel";
 
   return (
     <div
@@ -44,7 +48,7 @@ export default async function CdssLayout({
             ))}
             <span className="h-4 w-px bg-border" aria-hidden="true" />
             <span className="text-muted-foreground hidden md:inline">
-              {displayName}
+              {clinicianLabel}
             </span>
             {signedIn ? (
               <form action="/auth/signout" method="post">
@@ -65,8 +69,42 @@ export default async function CdssLayout({
             )}
           </nav>
         </div>
+
+        {/* Patient-context strip — shown when a consent token is active */}
+        {signedIn && access && (
+          <div className="bg-secondary text-secondary-foreground border-b border-border">
+            <div className="max-w-7xl mx-auto px-6 lg:px-10 py-2 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-3">
+                <span className="font-semibold">{access.patientDisplayName}</span>
+                <span className="text-muted-foreground">·</span>
+                <span className="text-muted-foreground">
+                  {access.token.scope === "read_and_note"
+                    ? "Read & note"
+                    : "Read only"}
+                </span>
+                <span className="text-muted-foreground">·</span>
+                <span className="text-muted-foreground">
+                  Expires {formatExpires(access.token.expiresAt)}
+                </span>
+              </div>
+              <span className="text-muted-foreground font-mono">
+                Consent {access.token.id.slice(0, 8)}…
+              </span>
+            </div>
+          </div>
+        )}
       </header>
       <main>{children}</main>
     </div>
   );
+}
+
+function formatExpires(iso: string) {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return "expired";
+  const hours = Math.floor(ms / (1000 * 60 * 60));
+  if (hours < 24) return `in ${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days < 14) return `in ${days}d`;
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }

@@ -9,6 +9,7 @@ export default async function SignInPage({
     sent?: string;
     email?: string;
     error?: string;
+    access?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -16,6 +17,7 @@ export default async function SignInPage({
   const sent = params.sent === "1";
   const error = params.error;
   const email = params.email ?? "";
+  const access = params.access ?? "";
 
   if (sent) {
     return (
@@ -65,7 +67,15 @@ export default async function SignInPage({
           and brings you straight to the right view for your role.
         </p>
 
+        {access && (
+          <p className="text-sm text-[var(--color-brand-aubergine)] bg-[var(--color-brand-blush)]/40 border border-[var(--color-brand-sand)] rounded-[10px] px-4 py-3 mb-6">
+            You&apos;re following a patient access link. Sign in as a clinician
+            and we&apos;ll bring you straight to their record.
+          </p>
+        )}
+
         <form action={sendMagicLink} className="space-y-5">
+          {access && <input type="hidden" name="access" value={access} />}
           <fieldset className="space-y-3">
             <legend className="text-sm font-semibold text-[var(--color-brand-aubergine)] mb-1">
               I&apos;m signing in as a…
