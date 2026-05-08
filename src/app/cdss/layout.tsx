@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getActiveClinicianAccess } from "@/lib/auth/consent";
+import { countOwnPasskeys } from "@/lib/auth/passkeys";
 
 const NAV = [
   { href: "/cdss", label: "Rapid Answer" },
@@ -18,6 +20,15 @@ export default async function CdssLayout({
   const user = await getCurrentUser();
   const signedIn = user?.role === "clinician";
   const access = signedIn ? await getActiveClinicianAccess() : null;
+  const passkeyCount = signedIn ? await countOwnPasskeys() : 0;
+  const passkeyMissing = signedIn && passkeyCount === 0;
+
+  // Hard gate — clinicians without a passkey cannot reach /cdss surfaces.
+  // Anonymous demo users still see the surface; signed-in clinicians are
+  // bounced to /account/security to enrol.
+  if (passkeyMissing) {
+    redirect("/account/security?required=1");
+  }
 
   // Display name resolution
   const clinicianLabel = signedIn ? user.displayName : "Demo · Ms R Patel";

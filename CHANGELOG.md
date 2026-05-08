@@ -6,6 +6,38 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-08 — WebAuthn passkeys (Build Tracker feature 1, chunk 2)
+
+- Migration `004_passkeys.sql` — `passkeys` table (credential id,
+  public key, counter, transports, device name, backed-up flag,
+  timestamps), RLS for own-row CRUD, `count_user_passkeys` helper.
+- `@simplewebauthn/server` + `@simplewebauthn/browser` deps.
+- Server-side ceremony helper `src/lib/auth/passkeys.ts` — RP config
+  from env (`WEBAUTHN_RP_ID`, `WEBAUTHN_RP_NAME`), challenge-cookie
+  I/O (HttpOnly, 5-minute TTL, SameSite=strict), registration option
+  builder, attestation verifier, listing helpers.
+- Server actions: `startPasskeyEnrollment`, `finishPasskeyEnrollment`,
+  `deletePasskey`. Two-step ceremony with the challenge stashed in
+  the cookie between calls.
+- `/account/security` page — list of enrolled passkeys with device
+  name, transport, backed-up flag, timestamps; remove action;
+  enrolment via the client component which drives the OS passkey UI.
+- Clinician hard gate — `/cdss/*` layout checks for at least one
+  passkey on the signed-in clinician. None → redirects to
+  `/account/security?required=1` with a labelled alert. Anonymous
+  demo users still see the mock data on `/cdss/*`.
+- ADR 0005 captures the decision.
+
+### Deferred (still open on Build Tracker feature 1)
+
+- Sign-in second factor (re-prompt on each session) — enrolment is in
+  but using the passkey to authenticate at sign-in time is the next
+  chunk.
+- Idle timeout / session expiry policy.
+- Audit-log instrumentation of passkey enrol / remove events.
+- Account recovery flow for a clinician who loses their only passkey.
+- Pen-test for horizontal privilege escalation.
+
 ### Added — 2026-05-08 — Consent tokens (Build Tracker feature 1, chunk 3)
 
 - Migration `003_consent_tokens.sql` — `consent_scope` enum (read_only,
