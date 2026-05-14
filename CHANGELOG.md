@@ -6,6 +6,57 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-14 — Rule-engine audit mirroring + red-flag journal-save scan (Build Tracker feature 8, chunk 2)
+
+- `src/lib/llm/audit.ts` — new `mirrorRuleEngineFire` helper writes a
+  synthetic `llm_audit_log` row whenever a rule engine fires. Uses two
+  sentinel values exported alongside: `RULE_ENGINE_MODEL_ID =
+  "rule-engine-only"` (so reviewers can filter rule rows from model
+  rows) and `RULE_ENGINE_TASK_PREFIX = "rule:"` (namespaces `task_name`
+  by rule, e.g. `rule:red-flag/heavy_acute_bleeding`). Hash-chain
+  tamper evidence comes for free from the existing audit table.
+- `persistRedFlagFire` now dual-writes: every fire goes into both
+  `red_flag_events` (the operational table the banner reads) AND
+  `llm_audit_log` (the regulatory timeline). Mirror failure is caught
+  and logged so a transient audit-log error never blocks the urgent
+  banner reaching the patient.
+- Audit citations on red-flag mirrors point at the trigger source —
+  journal entry ids for the bleeding rule's journal-derived path, and
+  `symptom-check:<submittedAt>` for the active symptom-check path.
+  Inputs are recorded as a compact view (activeCheck + bleeding column
+  of recent entries) rather than the full payload so audit rows stay
+  readable.
+- New `scanRedFlagsOnJournalSave(patientSubjectId, recentEntries)`
+  orchestrator: evaluates the rule pack with `activeCheck: null`,
+  reads the patient's currently unresolved fires via
+  `listActiveRedFlagEventsForPatient`, deduplicates (one ongoing
+  condition shouldn't produce a fresh urgent banner on every entry),
+  and persists new fires via `persistRedFlagFire` (which now
+  dual-writes).
+- `saveJournalEntry` (`src/app/portal/journal/new/actions.ts`) calls
+  `scanRedFlagsOnJournalSave` after a successful insert. Any scan
+  failure is caught and logged — it must not roll back the patient's
+  save. `revalidatePath("/portal/check")` added so the banner refreshes
+  with any newly-persisted fire.
+- The existing `/portal/check` symptom-check action automatically gets
+  audit mirroring through the dual-write — no additional wiring.
+- ADR 0013 captures the decision, the sentinel-value conventions, and
+  the deliberate scope exclusions (NICE / adeno mirroring needs
+  state-transition tables before it's safe to enable; document-save
+  scan is a no-op until the rule pack grows imaging-driven rules).
+
+### Deferred (still open on Build Tracker features 6, 7, 8)
+
+- Mirror NICE NG73 prompter fires — requires a state-transition table
+  before mirroring so the audit log doesn't get one row per page load.
+- Mirror adenomyosis engine fires — same shape as NICE.
+- Patient SMS / email / push notification when a red flag fires from a
+  save (not just from an active symptom check).
+- Multi-region urgent-care resources (UK hard-coded today).
+- Retrospective rescan command for historical entries.
+- Document-save scan once the red-flag rule pack grows imaging-driven
+  rules.
+
 ### Added — 2026-05-14 — Patient document upload + imaging extraction (Build Tracker feature 4, chunk 1)
 
 - Migration `008_documents.sql` — `public.documents` table with

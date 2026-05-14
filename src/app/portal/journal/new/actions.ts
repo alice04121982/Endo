@@ -9,7 +9,11 @@ import {
   computeCyclePhase,
   type CyclePhase,
 } from "@/lib/clinical/cycle";
-import { getPatientCycleContext } from "@/lib/clinical/journal";
+import {
+  getPatientCycleContext,
+  listOwnJournalEntries,
+} from "@/lib/clinical/journal";
+import { scanRedFlagsOnJournalSave } from "@/lib/clinical/red-flags";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Voice path: transcribe (browser-side) → extract → return for confirmation
@@ -186,7 +190,21 @@ export async function saveJournalEntry(
     return { ok: false, error: error?.message ?? "Could not save" };
   }
 
+  // Background-style red-flag scan. The save has already succeeded;
+  // any scan failure must not roll back the journal entry, so errors
+  // are caught and logged. The scan reads the patient's last 14
+  // entries (including the one we just wrote) and persists any newly-
+  // fired flags, deduplicated against currently active fires for the
+  // same rule_id.
+  try {
+    const recent = await listOwnJournalEntries(14);
+    await scanRedFlagsOnJournalSave(user.id, recent);
+  } catch (err) {
+    console.error("red-flag scan on journal save failed", err);
+  }
+
   revalidatePath("/portal/journal");
   revalidatePath("/portal");
+  revalidatePath("/portal/check");
   return { ok: true, id: inserted.id };
 }

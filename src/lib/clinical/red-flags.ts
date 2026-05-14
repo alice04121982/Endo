@@ -1,5 +1,7 @@
 import type { JournalEntry } from "./journal";
 import { getSupabaseServer, getSupabaseServiceRole } from "@/lib/supabase/server";
+import { mirrorRuleEngineFire } from "@/lib/llm/audit";
+import type { Citation } from "@/lib/llm/types";
 
 // Red-flag triage — highest-stakes output. Rule-based, deterministic,
 // no LLM in trigger or action. The headline and CTA copy below are
@@ -260,6 +262,7 @@ export async function persistRedFlagFire(
   patientSubjectId: string,
   flag: RedFlag,
   inputs: RedFlagInputs,
+  options?: { callerSubjectId?: string },
 ): Promise<void> {
   const service = getSupabaseServiceRole();
   if (!service) return; // Local dev fallback — no DB persistence.
@@ -270,4 +273,101 @@ export async function persistRedFlagFire(
     severity: "urgent",
     inputs: inputs as unknown as Record<string, unknown>,
   });
+
+  // Mirror the fire into llm_audit_log so the regulatory reviewer
+  // sees rule fires and LLM calls in one timeline. Best-effort —
+  // failing the mirror should not block the red-flag event being
+  // visible to the patient, so any error is logged but swallowed.
+  try {
+    await mirrorRuleEngineFire({
+      patientSubjectId,
+      callerSubjectId: options?.callerSubjectId ?? patientSubjectId,
+      ruleId: `red-flag/${flag.id}`,
+      rulePackVersion: flag.rulePackVersion,
+      inputs: redFlagInputsForAudit(inputs),
+      output: {
+        id: flag.id,
+        severity: flag.severity,
+        clinicianDescription: flag.clinicianDescription,
+        patientHeadline: flag.patientHeadline,
+        patientAction: flag.patientAction,
+        rationale: flag.rationale,
+      },
+      citations: redFlagCitations(flag, inputs),
+    });
+  } catch (err) {
+    console.error("red-flag audit mirror failed", err);
+  }
+}
+
+function redFlagInputsForAudit(
+  inputs: RedFlagInputs,
+): Record<string, unknown> {
+  return {
+    activeCheck: inputs.activeCheck,
+    recentEntries: inputs.recentEntries.map((e) => ({
+      id: e.id,
+      entryDate: e.entryDate,
+      bleedingHeaviness: e.bleedingHeaviness,
+    })),
+  };
+}
+
+function redFlagCitations(flag: RedFlag, inputs: RedFlagInputs): Citation[] {
+  const citations: Citation[] = [];
+  if (flag.id === "heavy_acute_bleeding" && !inputs.activeCheck?.bleedingThroughPad) {
+    // Journal-derived fire. Cite the two very-heavy entries that triggered.
+    const sorted = [...inputs.recentEntries].sort((a, b) =>
+      b.entryDate.localeCompare(a.entryDate),
+    );
+    for (const e of sorted.slice(0, 2)) {
+      citations.push({
+        kind: "source_data",
+        sourceId: e.id,
+        label: `Journal ${e.entryDate} — ${e.bleedingHeaviness}`,
+      });
+    }
+  }
+  if (inputs.activeCheck) {
+    citations.push({
+      kind: "source_data",
+      sourceId: `symptom-check:${inputs.activeCheck.submittedAt}`,
+      label: "Urgent symptom check submission",
+    });
+  }
+  return citations;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Save-time scan
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Called from the journal save path. Re-runs the engine with the
+// latest journal state and no active symptom-check, then writes any
+// new fires. Deduplicates against currently unresolved fires for the
+// same rule_id so a single ongoing condition doesn't produce a fresh
+// urgent banner on every entry.
+
+export async function scanRedFlagsOnJournalSave(
+  patientSubjectId: string,
+  recentEntries: JournalEntry[],
+): Promise<RedFlag[]> {
+  const flags = evaluateRedFlags({ recentEntries, activeCheck: null });
+  if (flags.length === 0) return [];
+
+  const active = await listActiveRedFlagEventsForPatient(patientSubjectId);
+  const alreadyActive = new Set(active.map((e) => e.ruleId));
+
+  const persisted: RedFlag[] = [];
+  for (const flag of flags) {
+    if (alreadyActive.has(flag.id)) continue;
+    await persistRedFlagFire(
+      patientSubjectId,
+      flag,
+      { recentEntries, activeCheck: null },
+      { callerSubjectId: patientSubjectId },
+    );
+    persisted.push(flag);
+  }
+  return persisted;
 }
