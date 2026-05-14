@@ -252,6 +252,98 @@ Output JSON only:
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Task: extract-imaging-report
+// Tier: extraction (Haiku)
+// Used by: patient document upload (feature 4 of the brief)
+// ─────────────────────────────────────────────────────────────────────────────
+const ExtractImagingInput = z.object({
+  documentId: z.string().min(1),
+  kind: z.enum(["tvs_report", "mri_report"]),
+  rawText: z.string().min(1),
+});
+const ExtractImagingOutput = z.object({
+  summary: z.string().min(1),
+  performedAt: z.string().nullable(),
+  source: z.string().nullable(),
+  findings: z.object({
+    jzIrregularity: z.boolean().nullable(),
+    bulkyUterus: z.boolean().nullable(),
+    endometrioma: z.boolean().nullable(),
+    posteriorAdhesions: z.boolean().nullable(),
+    freeFluid: z.boolean().nullable(),
+    endometrialThicknessMm: z.number().nullable(),
+    inconclusive: z.boolean(),
+    otherFindings: z.array(z.string()),
+  }),
+});
+
+const extractImagingTask: TaskDefinition<
+  z.infer<typeof ExtractImagingInput>,
+  z.infer<typeof ExtractImagingOutput>
+> = {
+  name: "extract-imaging-report",
+  version: "extract-imaging-report@0.1.0",
+  audiences: ["patient"],
+  modelTier: "extraction",
+  inputSchema: ExtractImagingInput,
+  outputSchema: ExtractImagingOutput,
+  requiresCitations: true,
+  defaultCitations: (input) => [
+    {
+      kind: "source_data",
+      sourceId: input.documentId,
+      label:
+        input.kind === "tvs_report"
+          ? "Transvaginal ultrasound report"
+          : "Pelvic MRI report",
+    },
+  ],
+  buildTaskBlock: () => `\
+Task: extract structured findings from a transvaginal ultrasound (TVS)
+or pelvic MRI report.
+
+You are given the raw text of an imaging report. Read it carefully and
+return structured findings. Do not invent findings the report doesn't
+mention.
+
+For each finding field below, return:
+- true  — the report explicitly notes the finding is present
+- false — the report explicitly notes the finding is absent
+- null  — the report does not address it (do NOT guess)
+
+Findings to extract:
+- jzIrregularity         — junctional zone irregularity / thickening / disruption
+- bulkyUterus            — uterus described as bulky, globular, or enlarged for age
+- endometrioma           — endometrioma / chocolate cyst on either ovary
+- posteriorAdhesions     — sliding-sign negative, pouch of Douglas obliterated,
+                           or other posterior compartment adhesions
+- freeFluid              — free fluid in the pouch of Douglas
+- endometrialThicknessMm — number in millimetres if stated, else null
+- inconclusive           — TRUE if the report explicitly says it could not
+                           characterise the pelvis, or notes findings that
+                           warrant further imaging (e.g. "possible adenomyosis
+                           features", "recommend MRI for further evaluation").
+                           Default false.
+- otherFindings          — short bullet phrases for anything clinically
+                           relevant that does not fit the typed fields
+                           (e.g. fibroids, cysts, cervical findings).
+
+Also extract:
+- summary       — one or two short sentences in plain English, suitable
+                  to show the patient. No diagnostic conclusions.
+                  Use the report's own wording where possible.
+- performedAt   — ISO date (YYYY-MM-DD) if the report states the study
+                  date, else null.
+- source        — the hospital / radiology service if named, else null.
+
+Never produce diagnostic conclusions. Never say "you have endometriosis"
+or "confirms adenomyosis". The summary is for patient context, not for
+clinical decision-making.
+
+Output JSON only, matching the schema exactly.`,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Registry
 // ─────────────────────────────────────────────────────────────────────────────
 // Each task constant is strongly typed individually. The registry itself
@@ -267,6 +359,7 @@ const REGISTRY: Record<string, AnyTaskDefinition> = {
   [synthCsdSectionTask.name]: synthCsdSectionTask,
   [generateCsdViewTask.name]: generateCsdViewTask,
   [clinicianQaTask.name]: clinicianQaTask,
+  [extractImagingTask.name]: extractImagingTask,
 };
 
 export function getTask(name: string): AnyTaskDefinition | null {

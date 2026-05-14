@@ -8,11 +8,20 @@ import {
   defaultEmptyInputs,
   evaluateNiceRules,
   visibleNicePrompts,
+  type NiceRuleInputs,
+  type UploadedImagingDoc,
 } from "./nice-rules";
 import {
   defaultAdenomyosisInputs,
   evaluateAdenomyosis,
+  type AdenomyosisInputs,
 } from "./adenomyosis";
+import {
+  listOwnDocuments,
+  isImagingKind,
+  type Document,
+  type ImagingFindings,
+} from "./documents";
 
 // Cumulative Symptom Dossier — typed payload + render service.
 //
@@ -114,19 +123,50 @@ export async function buildCSDPayloadForCurrentPatient(): Promise<CSDPayload | n
 
   const ctx = await getPatientCycleContext();
   const entries = await listOwnJournalEntries(60);
+  const docs = await listOwnDocuments(60);
 
-  // Evaluate the NICE NG73 rule pack over the patient's record. Only the
-  // gap / partial prompts go into the payload — satisfied and not-applicable
-  // ones add no value to the dossier. awaiting_data prompts are excluded
-  // until their dependent feature lands and they collapse to a definite
-  // status.
-  const niceAll = evaluateNiceRules(defaultEmptyInputs(entries));
+  // Pull imaging documents apart for the NICE and adenomyosis engines.
+  // Only ai_extracted_pending_review and clinician_confirmed docs count;
+  // pending and extraction_failed ones can't contribute findings yet.
+  const usableImagingDocs = docs.filter(
+    (d) =>
+      isImagingKind(d.kind) &&
+      (d.extractionStatus === "ai_extracted_pending_review" ||
+        d.extractionStatus === "clinician_confirmed"),
+  );
+
+  const niceImaging: UploadedImagingDoc[] = usableImagingDocs.map((d) => ({
+    modality: d.kind === "tvs_report" ? "tvs" : "mri",
+    performedAt: d.performedAt ?? d.createdAt.slice(0, 10),
+    inconclusive: imagingFindingsFrom(d)?.inconclusive ?? false,
+  }));
+
+  const niceInputs: NiceRuleInputs = {
+    ...defaultEmptyInputs(entries),
+    imaging: niceImaging,
+  };
+  const niceAll = evaluateNiceRules(niceInputs);
   const niceGapsForPayload = visibleNicePrompts(niceAll).map((p) => ({
     recommendationId: p.recommendationId,
     recommendationLabel: p.recommendationLabel,
     patientText: p.patientText ?? "",
     clinicianText: p.clinicianText ?? "",
   }));
+
+  // Imaging-derived adeno inputs. Folds findings across all usable
+  // imaging documents — if ANY report notes JZ irregularity or a
+  // bulky uterus, the criterion fires. If all reports explicitly
+  // note the finding absent, it's false. If no report addresses the
+  // finding, the criterion stays null (awaiting_data).
+  const adenoInputs: AdenomyosisInputs = {
+    ...defaultAdenomyosisInputs(entries),
+    jzIrregularityOnImaging: foldTriState(
+      usableImagingDocs.map((d) => imagingFindingsFrom(d)?.jzIrregularity ?? null),
+    ),
+    bulkyUterusOnImaging: foldTriState(
+      usableImagingDocs.map((d) => imagingFindingsFrom(d)?.bulkyUterus ?? null),
+    ),
+  };
 
   return {
     patient: {
@@ -147,10 +187,35 @@ export async function buildCSDPayloadForCurrentPatient(): Promise<CSDPayload | n
       patientPlainSummary: e.patientPlainSummary,
       sourceId: e.id,
     })),
-    uploadedDocuments: [],
+    uploadedDocuments: docs
+      .filter((d) => d.extractedSummary)
+      .map((d) => ({
+        sourceId: d.id,
+        kind: d.kind,
+        performedAt: d.performedAt ?? d.createdAt.slice(0, 10),
+        summary: d.extractedSummary ?? "",
+      })),
     niceGaps: niceGapsForPayload,
-    adenomyosisFlag: evaluateAdenomyosis(defaultAdenomyosisInputs(entries)),
+    adenomyosisFlag: evaluateAdenomyosis(adenoInputs),
   };
+}
+
+function imagingFindingsFrom(d: Document): ImagingFindings | null {
+  if (!d.extracted) return null;
+  const ext = d.extracted as Partial<ImagingFindings>;
+  if (typeof ext.inconclusive !== "boolean") return null;
+  return ext as ImagingFindings;
+}
+
+/**
+ * Three-valued logical OR over `true | false | null`. Any `true` wins
+ * (a finding present in any imaging report is present). If no report
+ * has the answer, the result is null (awaiting_data). Otherwise false.
+ */
+function foldTriState(values: (boolean | null)[]): boolean | null {
+  if (values.some((v) => v === true)) return true;
+  if (values.some((v) => v === false)) return false;
+  return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

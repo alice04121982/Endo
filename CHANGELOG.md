@@ -6,6 +6,66 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-14 — Patient document upload + imaging extraction (Build Tracker feature 4, chunk 1)
+
+- Migration `008_documents.sql` — `public.documents` table with
+  seven-value `document_kind` enum (now including `mri_report`
+  alongside the existing `tvs_report`) and four-value
+  `document_extraction_status` enum (adds `extraction_failed`).
+  Structural columns immutable post-insert via `BEFORE UPDATE`
+  trigger; patient own-CRUD, clinician read joined through active
+  consent tokens. No delete policy — documents are sticky.
+- `src/lib/clinical/documents.ts` — `Document` type, tri-state
+  `ImagingFindings`, `listOwnDocuments` /
+  `listDocumentsForPatient` / `insertPendingDocument` /
+  `finaliseExtraction` server helpers.
+- New gateway task `extract-imaging-report@0.1.0` (Haiku tier).
+  Takes a typed `rawText` + modality, returns
+  `{ summary, performedAt?, source?, findings }` where `findings`
+  carries tri-state booleans for JZ irregularity, bulky uterus,
+  endometrioma, posterior adhesions, free fluid, plus a numeric
+  endometrial thickness, an `inconclusive` flag, and `otherFindings[]`.
+  The task block instructs the model to return `null` rather than
+  guess. Diagnostic-conclusion refusal sweep still applies.
+- `/portal/uploads` rewritten — server component that branches on
+  auth. Authed patient sees a live list (`listOwnDocuments`) plus the
+  new `<UploadForm/>` client component. Anonymous viewers see the
+  existing mock layout. Form posts to a server action that inserts
+  the pending row, calls the gateway synchronously, writes the
+  extracted blob (or the failure reason) via service-role, then
+  revalidates `/portal/uploads`, `/portal/dossier`, and `/cdss`.
+- `buildCSDPayloadForCurrentPatient` now loads documents alongside
+  journal entries. Imaging documents in
+  `ai_extracted_pending_review` or `clinician_confirmed` are folded
+  into the engines:
+  - NICE rules get a populated `imaging: UploadedImagingDoc[]` so
+    §1.5.2 (TVS presence) and §1.5.3 (MRI when TVS inconclusive) can
+    fire instead of `awaiting_data`-ing.
+  - Adenomyosis engine gets `jzIrregularityOnImaging` and
+    `bulkyUterusOnImaging` from a tri-state fold (`true` wins; all
+    `false` is `false`; otherwise `null`).
+  - `CSDPayload.uploadedDocuments` now carries the extracted
+    summaries so the gateway's CSD narrative can cite the document
+    by `sourceId`. Payload hash changes; cached renders rewrite on
+    next regenerate.
+- ADR 0012 captures the decision, the chunk-1 scope, and what's
+  deferred to chunk 2.
+
+### Deferred (still open on Build Tracker feature 4)
+
+- PDF / image upload + OCR (paste-text-only is chunk 1's surface).
+- Supabase Storage bucket for original files.
+- Clinician "confirm extraction" action moving status to
+  `clinician_confirmed`.
+- Patient "withdraw document" status / soft-delete semantics.
+- Blood-test, operative-note, and histology extraction tasks (chunk
+  1 ships imaging only).
+- Background scan trigger on document save to recompute the
+  red-flag engine and refresh any cached CSD render.
+- Back-fill of `performed_at` / `source` from the extractor's output
+  when the user leaves those fields blank (structural columns are
+  immutable; needs an append-mode design).
+
 ### Added — 2026-05-14 — Adenomyosis surfaces wiring (Build Tracker feature 7, chunk 1)
 
 - `CSDPayloadSchema.adenomyosisFlag` extended from the previous
