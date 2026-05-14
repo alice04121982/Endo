@@ -6,6 +6,63 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-14 — Adenomyosis surfaces wiring (Build Tracker feature 7, chunk 1)
+
+- `CSDPayloadSchema.adenomyosisFlag` extended from the previous
+  three-field stub (`triggered`, `score`, `triggers: string[]`) to the
+  full `AdenomyosisResult` shape: `rulePackVersion`, `status`, `score`,
+  `thresholdScore`, `evaluableMaxScore`, structured
+  `triggers: { id, label, evidence }[]`, `awaitingInputs`, `patientText`,
+  `clinicianText`. The payload hash changes; previously cached CSD
+  renders miss-cache once and are rewritten on the next regenerate. No
+  DB migration needed — `csd_renders.payload` is `jsonb`.
+- `buildCSDPayloadForCurrentPatient` calls
+  `evaluateAdenomyosis(defaultAdenomyosisInputs(entries))` and stamps
+  the result into the payload. Result threads through the gateway as
+  part of the CSDPayload so the LLM narrative can reference rule fires
+  as discussion points without inventing them.
+- `src/lib/clinical/rapid-answer.ts` — `rowBleeding`'s inline
+  `adenomyosis_consideration` flag now reads
+  `payload.adenomyosisFlag.status === "triggered"` instead of a local
+  `heavy.length >= 2` heuristic. One source of truth; row flag and chip
+  strip cannot drift. `deriveRapidAnswers`'s payload parameter narrowed
+  to a `RapidAnswerContext` slice so callers don't need a full payload.
+- `/cdss/page.tsx` LivePanel computes the engine result over the
+  patient's journal and renders a dedicated `AdenoChip` showing
+  `score / evaluableMaxScore`. The clinician sentence (carrying the
+  cited prevalence and the suggested MRI protocol) renders below the
+  chip strip with the rule-pack version stamped on the line. The
+  rapid-answer-derived adeno entry is filtered out of the chip set so
+  the chip is not rendered twice.
+- `/cdss/page.tsx` DemoPanel uses the same `AdenoChip` against the new
+  mock `AdenomyosisResult`-shaped value, so demo and live share render
+  code.
+- `/portal/dossier/page.tsx` drops the `!live` guard on the adenomyosis
+  section. The section renders whenever `adenoForRender.status ===
+  "triggered"` — fed by the engine when authed, by the mock for
+  anonymous demo viewers. Footer line stamps the rule-pack version,
+  score, and threshold so the patient sees what evidence base
+  triggered the consideration.
+- `src/lib/mock/patient.ts` `adenomyosisFlag` reshaped to
+  `AdenomyosisResult` (status field, structured triggers,
+  awaitingInputs) so the demo and live render paths converge.
+- ADR 0011 captures the decision and the parallel-not-subordinate
+  framing.
+
+### Deferred (still open on Build Tracker feature 7)
+
+- Treatment-trial history table feeding `hormonalNonResponse`.
+- Profile-edit page capturing `priorPregnancyLosses`.
+- Imaging extraction (lands with feature 4) feeding
+  `jzIrregularityOnImaging` and `bulkyUterusOnImaging`.
+- Per-criterion drill-down on the clinician panel (structured
+  `triggers` are in the payload but not yet rendered as a per-trigger
+  list).
+- Mirroring engine-only fires into `llm_audit_log` for the unified
+  audit view.
+- Patient-facing FAQ explaining the difference between endometriosis
+  and adenomyosis (planned in the education module).
+
 ### Added — 2026-05-08 — Red-flag triage rule engine (Build Tracker feature 8, chunk 1)
 
 - Migration `007_red_flag_events.sql` — append-only audit table.

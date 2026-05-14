@@ -2,6 +2,7 @@ import {
   buildCSDPayloadForCurrentPatient,
   readLatestRender,
 } from "@/lib/clinical/csd";
+import type { AdenomyosisResult } from "@/lib/clinical/adenomyosis";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { listOwnJournalEntries } from "@/lib/clinical/journal";
 import {
@@ -11,7 +12,7 @@ import {
 } from "@/lib/clinical/nice-rules";
 import {
   dossierPatientView as MOCK_VIEW,
-  adenomyosisFlag,
+  adenomyosisFlag as MOCK_ADENO,
   nicePrompts,
 } from "@/lib/mock/patient";
 import { RegenerateButton } from "./regenerate-button";
@@ -37,6 +38,10 @@ export default async function DossierPage() {
     patientText: string;
   }[] = [];
 
+  // Adenomyosis section is fed by the engine when authed, by the mock
+  // otherwise. Either way the render code is the same.
+  let adenoForRender: AdenomyosisResult | null = null;
+
   if (isAuthedPatient) {
     const entries = await listOwnJournalEntries(60);
     const prompts = evaluateNiceRules(defaultEmptyInputs(entries));
@@ -50,6 +55,7 @@ export default async function DossierPage() {
     if (!payload || payload.recentEntries.length === 0) {
       empty = true;
     } else {
+      adenoForRender = payload.adenomyosisFlag;
       const cached = await readLatestRender(user.id, "patient");
       if (cached) {
         body = cached.body;
@@ -63,6 +69,8 @@ export default async function DossierPage() {
         live = true;
       }
     }
+  } else {
+    adenoForRender = MOCK_ADENO;
   }
 
   // What renders as the NICE panel: live results when authed, mock when not.
@@ -139,8 +147,9 @@ export default async function DossierPage() {
             </div>
           </article>
 
-          {/* Adenomyosis consideration — mock-only for now until feature 7 lands */}
-          {!live && adenomyosisFlag.triggered && (
+          {/* Adenomyosis consideration — live engine output when authed,
+              static mock copy otherwise. Identical patient-facing voice. */}
+          {adenoForRender?.status === "triggered" && (
             <section className="bg-[var(--color-brand-blush)] border border-[var(--color-brand-sand)] rounded-[14px] p-6 mb-6">
               <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-brand-stone)] mb-2">
                 Worth discussing
@@ -149,7 +158,13 @@ export default async function DossierPage() {
                 Adenomyosis — a clinical consideration
               </h2>
               <p className="text-sm text-[var(--color-brand-aubergine)] leading-relaxed whitespace-pre-line">
-                {adenomyosisFlag.patientText}
+                {adenoForRender.patientText}
+              </p>
+              <p className="text-xs text-[var(--color-brand-stone)] mt-3">
+                Rule pack {adenoForRender.rulePackVersion} · score{" "}
+                {adenoForRender.score}/{adenoForRender.evaluableMaxScore}{" "}
+                (threshold {adenoForRender.thresholdScore}). Decision support,
+                not a diagnosis.
               </p>
             </section>
           )}

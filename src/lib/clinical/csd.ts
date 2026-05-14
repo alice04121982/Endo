@@ -9,6 +9,10 @@ import {
   evaluateNiceRules,
   visibleNicePrompts,
 } from "./nice-rules";
+import {
+  defaultAdenomyosisInputs,
+  evaluateAdenomyosis,
+} from "./adenomyosis";
 
 // Cumulative Symptom Dossier — typed payload + render service.
 //
@@ -75,9 +79,23 @@ export const CSDPayloadSchema = z.object({
     .default([]),
   adenomyosisFlag: z
     .object({
-      triggered: z.boolean(),
+      rulePackVersion: z.string(),
+      status: z.enum(["triggered", "below_threshold", "awaiting_data"]),
       score: z.number().int(),
-      triggers: z.array(z.string()),
+      thresholdScore: z.number().int(),
+      evaluableMaxScore: z.number().int(),
+      triggers: z.array(
+        z.object({
+          id: z.string(),
+          label: z.string(),
+          evidence: z.string(),
+        }),
+      ),
+      awaitingInputs: z.array(
+        z.object({ id: z.string(), label: z.string() }),
+      ),
+      patientText: z.string(),
+      clinicianText: z.string(),
     })
     .nullable()
     .default(null),
@@ -131,7 +149,7 @@ export async function buildCSDPayloadForCurrentPatient(): Promise<CSDPayload | n
     })),
     uploadedDocuments: [],
     niceGaps: niceGapsForPayload,
-    adenomyosisFlag: null,
+    adenomyosisFlag: evaluateAdenomyosis(defaultAdenomyosisInputs(entries)),
   };
 }
 

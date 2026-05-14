@@ -1,6 +1,15 @@
 import type { JournalEntry } from "./journal";
 import type { CSDPayload } from "./csd";
 
+// Structural slice of the CSD payload that the panel actually consults.
+// Declared as its own shape so call sites that don't have a full payload
+// (e.g. the live CDSS page, which constructs adeno on the fly) can pass
+// just the bits they have. CSDPayload satisfies this structurally.
+export type RapidAnswerContext = Pick<
+  CSDPayload,
+  "adenomyosisFlag" | "uploadedDocuments"
+>;
+
 // Rapid Answer Panel — rule-based derivation of the 13 standard
 // endometriosis history rows from a patient's journal entries + payload.
 //
@@ -252,7 +261,10 @@ function rowSexual(entries: JournalEntry[]): DerivedAnswer {
   };
 }
 
-function rowBleeding(entries: JournalEntry[]): DerivedAnswer {
+function rowBleeding(
+  entries: JournalEntry[],
+  payload: RapidAnswerContext | null,
+): DerivedAnswer {
   const heavy = entries.filter((e) =>
     ["heavy", "very_heavy"].includes(e.bleedingHeaviness),
   );
@@ -278,8 +290,13 @@ function rowBleeding(entries: JournalEntry[]): DerivedAnswer {
       ? b
       : a;
   });
+  // Inline adenomyosis flag sourced from the rule engine (via payload), not
+  // from a local heuristic — keeps the row's flag in sync with the chip
+  // strip and avoids two thresholds drifting apart.
   const flag =
-    heavy.length >= 2 ? "adenomyosis_consideration" : undefined;
+    payload?.adenomyosisFlag?.status === "triggered"
+      ? "adenomyosis_consideration"
+      : undefined;
   return {
     question: "Heavy menstrual bleeding",
     group: "bleeding_family",
@@ -309,7 +326,7 @@ function rowTreatments(): DerivedAnswer {
   };
 }
 
-function rowPriorImaging(payload: CSDPayload | null): DerivedAnswer {
+function rowPriorImaging(payload: RapidAnswerContext | null): DerivedAnswer {
   const docs = payload?.uploadedDocuments ?? [];
   const imaging = docs.filter((d) => d.kind.includes("tvs") || d.kind.includes("mri"));
   if (imaging.length === 0) {
@@ -356,7 +373,7 @@ function rowFertility(): DerivedAnswer {
 // ─────────────────────────────────────────────────────────────────────────────
 export function deriveRapidAnswers(
   entries: JournalEntry[],
-  payload: CSDPayload | null,
+  payload: RapidAnswerContext | null,
 ): DerivedAnswer[] {
   return [
     rowAgeOnset(),
@@ -366,7 +383,7 @@ export function deriveRapidAnswers(
     rowBowel(entries),
     rowBladder(entries),
     rowSexual(entries),
-    rowBleeding(entries),
+    rowBleeding(entries, payload),
     rowFamilyHistory(),
     rowTreatments(),
     rowPriorImaging(payload),

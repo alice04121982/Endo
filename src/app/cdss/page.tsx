@@ -7,6 +7,11 @@ import {
   evaluateNiceRules,
   visibleNicePrompts,
 } from "@/lib/clinical/nice-rules";
+import {
+  defaultAdenomyosisInputs,
+  evaluateAdenomyosis,
+  type AdenomyosisResult,
+} from "@/lib/clinical/adenomyosis";
 import { getSupabaseServiceRole } from "@/lib/supabase/server";
 import { FreeTextQuery } from "./freetext-query";
 import {
@@ -108,9 +113,22 @@ async function LivePanel({
     }));
   }
 
-  const answers = deriveRapidAnswers(entries, null);
+  // Run the adenomyosis engine over the patient's journal. Result threads
+  // into the rapid-answer derivation (bleeding-row inline flag) AND into
+  // a dedicated chip in the flag strip so the score is visible.
+  const adeno = evaluateAdenomyosis(defaultAdenomyosisInputs(entries));
+
+  const answers = deriveRapidAnswers(entries, {
+    adenomyosisFlag: adeno,
+    uploadedDocuments: [],
+  });
   const grouped = groupByGroup(answers);
-  const flags = collectFlags(answers);
+  // Strip the rapid-answer-derived adeno flag from the chip set so we
+  // don't render it twice; the dedicated AdenoChip below renders the rich
+  // score-bearing label.
+  const flags = collectFlags(answers).filter(
+    (f) => f !== "adenomyosis_consideration",
+  );
 
   // Live NICE NG73 prompts — gap / partial only — surface above the rows
   // alongside the journal-derived flags. Each prompt carries the rule pack
@@ -151,8 +169,11 @@ async function LivePanel({
         </p>
       </header>
 
-      {(flags.length > 0 || niceVisible.length > 0) && (
+      {(adeno.status === "triggered" ||
+        flags.length > 0 ||
+        niceVisible.length > 0) && (
         <section className="mb-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          {adeno.status === "triggered" && <AdenoChip result={adeno} />}
           {flags.map((f) => (
             <FlagInline key={f}>{FLAG_INLINE[f]}</FlagInline>
           ))}
@@ -162,6 +183,11 @@ async function LivePanel({
             </FlagInline>
           ))}
         </section>
+      )}
+      {adeno.status === "triggered" && (
+        <p className="-mt-6 mb-8 text-xs text-muted-foreground leading-relaxed max-w-3xl">
+          {adeno.clinicianText} Rule pack {adeno.rulePackVersion}.
+        </p>
       )}
 
       {(["symptom_pattern", "organ_involvement", "bleeding_family", "investigations_treatment_fertility"] as const).map((g) => (
@@ -278,15 +304,18 @@ function DemoPanel() {
       </header>
 
       <section className="mb-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-        {adenomyosisFlag.triggered && (
-          <FlagInline>
-            Adenomyosis co-consideration · score {adenomyosisFlag.score}/6
-          </FlagInline>
+        {adenomyosisFlag.status === "triggered" && (
+          <AdenoChip result={adenomyosisFlag} />
         )}
         {niceGaps.map((g) => (
           <FlagInline key={g.recommendationId}>{g.recommendationLabel}</FlagInline>
         ))}
       </section>
+      {adenomyosisFlag.status === "triggered" && (
+        <p className="-mt-6 mb-8 text-xs text-muted-foreground leading-relaxed max-w-3xl">
+          {adenomyosisFlag.clinicianText} Rule pack {adenomyosisFlag.rulePackVersion}.
+        </p>
+      )}
 
       <DemoGrouped answers={MOCK_ANSWERS} />
 
@@ -396,5 +425,13 @@ function FlagInline({
       />
       {children}
     </span>
+  );
+}
+
+function AdenoChip({ result }: { result: AdenomyosisResult }) {
+  return (
+    <FlagInline>
+      Adenomyosis co-consideration · score {result.score}/{result.evaluableMaxScore}
+    </FlagInline>
   );
 }
