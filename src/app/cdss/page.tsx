@@ -185,9 +185,7 @@ async function LivePanel({
         </section>
       )}
       {adeno.status === "triggered" && (
-        <p className="-mt-6 mb-8 text-xs text-muted-foreground leading-relaxed max-w-3xl">
-          {adeno.clinicianText} Rule pack {adeno.rulePackVersion}.
-        </p>
+        <AdenoDetail result={adeno} className="mb-8 -mt-2" />
       )}
 
       {(["symptom_pattern", "organ_involvement", "bleeding_family", "investigations_treatment_fertility"] as const).map((g) => (
@@ -312,9 +310,7 @@ function DemoPanel() {
         ))}
       </section>
       {adenomyosisFlag.status === "triggered" && (
-        <p className="-mt-6 mb-8 text-xs text-muted-foreground leading-relaxed max-w-3xl">
-          {adenomyosisFlag.clinicianText} Rule pack {adenomyosisFlag.rulePackVersion}.
-        </p>
+        <AdenoDetail result={adenomyosisFlag} className="mb-8 -mt-2" />
       )}
 
       <DemoGrouped answers={MOCK_ANSWERS} />
@@ -433,5 +429,86 @@ function AdenoChip({ result }: { result: AdenomyosisResult }) {
     <FlagInline>
       Adenomyosis co-consideration · score {result.score}/{result.evaluableMaxScore}
     </FlagInline>
+  );
+}
+
+function AdenoDetail({
+  result,
+  className = "",
+}: {
+  result: AdenomyosisResult;
+  className?: string;
+}) {
+  return (
+    <details
+      className={`group rounded-md border border-border bg-card overflow-hidden ${className}`}
+    >
+      <summary className="list-none cursor-pointer px-4 py-3 flex items-start gap-3 hover:bg-muted/30 transition-colors">
+        <span
+          aria-hidden="true"
+          className="text-xs text-muted-foreground mt-0.5 select-none group-open:rotate-90 transition-transform inline-block w-3"
+        >
+          ›
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-1">
+            Why this fired · score {result.score}/{result.evaluableMaxScore}{" "}
+            (threshold {result.thresholdScore})
+          </p>
+          <p className="text-sm text-foreground leading-relaxed">
+            {result.clinicianText}
+          </p>
+        </div>
+      </summary>
+      <div className="px-4 pb-4 pt-1 grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4 border-t border-border">
+        <section>
+          <h3 className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-2 pt-3">
+            Triggered criteria ({result.triggers.length})
+          </h3>
+          {result.triggers.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">
+              None — the rule pack fired on awaiting-data weighting alone.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {result.triggers.map((t) => (
+                <li key={t.id} className="text-sm">
+                  <p className="font-semibold text-foreground">{t.label}</p>
+                  <p className="text-muted-foreground leading-snug">
+                    {t.evidence}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section>
+          <h3 className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-2 pt-3">
+            Awaiting inputs ({result.awaitingInputs.length})
+          </h3>
+          {result.awaitingInputs.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">
+              All criteria evaluable from the patient&apos;s current record.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {result.awaitingInputs.map((a) => (
+                <li key={a.id} className="text-sm">
+                  <p className="font-semibold text-foreground">{a.label}</p>
+                  <p className="text-muted-foreground leading-snug">
+                    Not yet captured — the criterion will become evaluable
+                    when the dependent feature ships.
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <p className="lg:col-span-2 text-xs text-muted-foreground pt-2 border-t border-border">
+          Rule pack {result.rulePackVersion}. Decision support, not a
+          diagnosis.
+        </p>
+      </div>
+    </details>
   );
 }

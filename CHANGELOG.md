@@ -6,6 +6,25 @@ decisions are captured as ADRs in `docs/adr/`.
 
 ## [Unreleased]
 
+### Added — 2026-05-14 — Adenomyosis per-criterion drill-down on clinician panel (Build Tracker feature 7, chunk 2)
+
+- New `<AdenoDetail/>` component in `src/app/cdss/page.tsx` renders an
+  expandable two-column drill-down beneath the adenomyosis chip:
+  Triggered criteria (id, label, evidence) on the left; Awaiting
+  inputs on the right. The clinician sentence (cited prevalence) sits
+  in the always-visible summary alongside `score/evaluableMaxScore`
+  and the threshold for context.
+- Both `LivePanel` and `DemoPanel` use the same component, so demo
+  and live render identically. The demo mock's four triggers and one
+  awaiting input (prior pregnancy losses) make the drill-down obvious
+  in the public preview.
+- The drill-down replaces the prior single-paragraph clinician
+  sentence. Default state is collapsed — the chip-strip summary stays
+  scannable; clinicians click to inspect. Rule-pack version stamped
+  in the footer of the open view.
+- No engine changes; the structured `triggers` and `awaitingInputs`
+  were already on the `CSDPayload.adenomyosisFlag` from chunk 1.
+
 ### Added — 2026-05-14 — Rule-engine audit mirroring + red-flag journal-save scan (Build Tracker feature 8, chunk 2)
 
 - `src/lib/llm/audit.ts` — new `mirrorRuleEngineFire` helper writes a
