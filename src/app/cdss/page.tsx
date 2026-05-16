@@ -1,55 +1,27 @@
-"use client";
-
-import { useState } from "react";
 import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import { getActiveClinicianAccess } from "@/lib/auth/consent";
+import { deriveRapidAnswers, type DerivedAnswer } from "@/lib/clinical/rapid-answer";
 import {
-  patient,
-  rapidAnswers,
+  defaultEmptyInputs,
+  evaluateNiceRules,
+  visibleNicePrompts,
+} from "@/lib/clinical/nice-rules";
+import {
+  defaultAdenomyosisInputs,
+  evaluateAdenomyosis,
+  type AdenomyosisResult,
+} from "@/lib/clinical/adenomyosis";
+import { getSupabaseServiceRole } from "@/lib/supabase/server";
+import { FreeTextQuery } from "./freetext-query";
+import {
+  patient as MOCK_PATIENT,
+  rapidAnswers as MOCK_ANSWERS,
   pbacThisCycle,
   adenomyosisFlag,
   nicePrompts,
   type RapidAnswer,
 } from "@/lib/mock/patient";
-
-// Clinical Rapid Answer Panel — grouped definition list, no decorative
-// cards. Optimised for the thirty-second consult window. Information
-// density first; visual decoration second.
-//
-// Question grouping mirrors how a registrar / GP works through an
-// endometriosis history.
-
-const GROUPS: { title: string; questions: string[] }[] = [
-  {
-    title: "Symptom pattern",
-    questions: [
-      "Age of pelvic pain onset",
-      "Cyclicity",
-      "Severity trend",
-      "Anatomical pattern",
-    ],
-  },
-  {
-    title: "Organ involvement",
-    questions: [
-      "Bowel involvement",
-      "Bladder involvement",
-      "Sexual function",
-    ],
-  },
-  {
-    title: "Bleeding & family",
-    questions: ["Heavy menstrual bleeding", "Family history"],
-  },
-  {
-    title: "Investigations, treatment, fertility",
-    questions: [
-      "Prior imaging",
-      "Treatment trial history",
-      "Prior surgery",
-      "Fertility status and intent",
-    ],
-  },
-];
 
 const FLAG_INLINE: Record<string, string> = {
   adenomyosis_consideration: "Adenomyosis consideration",
@@ -57,7 +29,14 @@ const FLAG_INLINE: Record<string, string> = {
   treatment_escalation: "Escalation point",
 };
 
-const FREETEXT_DEMO: { q: string; a: string; cite: string }[] = [
+const GROUP_TITLES: Record<string, string> = {
+  symptom_pattern: "Symptom pattern",
+  organ_involvement: "Organ involvement",
+  bleeding_family: "Bleeding & family",
+  investigations_treatment_fertility: "Investigations, treatment, fertility",
+};
+
+const DEMO_QA = [
   {
     q: "How often does she report dyspareunia?",
     a: "Once per cycle on average over the last 14 days. Most recent: 2 May 2026 (deep, post-coital).",
@@ -75,22 +54,233 @@ const FREETEXT_DEMO: { q: string; a: string; cite: string }[] = [
   },
 ];
 
-export default function RapidAnswerPanel() {
-  const [activeQ, setActiveQ] = useState<typeof FREETEXT_DEMO[number] | null>(null);
-  const niceGaps = nicePrompts.filter((p) => p.status === "gap");
-  const answersByQ = Object.fromEntries(
-    rapidAnswers.map((a) => [a.question, a]),
+export default async function RapidAnswerPanel() {
+  const user = await getCurrentUser();
+  const isClinician = user?.role === "clinician";
+  const access = isClinician ? await getActiveClinicianAccess() : null;
+
+  if (isClinician && access) {
+    return <LivePanel access={access} />;
+  }
+  return <DemoPanel />;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Live panel — derives answers from the patient's actual record
+// ─────────────────────────────────────────────────────────────────────────────
+async function LivePanel({
+  access,
+}: {
+  access: NonNullable<Awaited<ReturnType<typeof getActiveClinicianAccess>>>;
+}) {
+  const patientName = access.patientDisplayName;
+  const tokenId = access.token.id;
+  const expires = access.token.expiresAt;
+
+  // Fetch journal entries via service-role since the clinician's RLS path
+  // requires the join through consent_tokens; that works at the SQL level
+  // but the @supabase/supabase-js type-narrowing needs the explicit query.
+  const service = getSupabaseServiceRole();
+  let entries: import("@/lib/clinical/journal").JournalEntry[] = [];
+  if (service) {
+    const { data } = await service
+      .from("journal_entries")
+      .select(
+        "id, recorded_at, entry_date, cycle_day, cycle_phase, pain_vas, pain_locations, bowel_symptoms, bladder_symptoms, dyspareunia, bleeding_heaviness, fatigue_vas, mood_score, notes, source, transcript, patient_plain_summary, ai_extracted",
+      )
+      .eq("patient_subject_id", access.token.patientSubjectId)
+      .order("entry_date", { ascending: false })
+      .limit(60);
+    entries = (data ?? []).map((e) => ({
+      id: e.id,
+      recordedAt: e.recorded_at,
+      entryDate: e.entry_date,
+      cycleDay: e.cycle_day,
+      cyclePhase: e.cycle_phase,
+      painVas: e.pain_vas,
+      painLocations: e.pain_locations ?? [],
+      bowelSymptoms: e.bowel_symptoms ?? [],
+      bladderSymptoms: e.bladder_symptoms ?? [],
+      dyspareunia: e.dyspareunia,
+      bleedingHeaviness: e.bleeding_heaviness,
+      fatigueVas: e.fatigue_vas,
+      moodScore: e.mood_score,
+      notes: e.notes,
+      source: e.source,
+      transcript: e.transcript,
+      patientPlainSummary: e.patient_plain_summary,
+      aiExtracted: e.ai_extracted,
+    }));
+  }
+
+  // Run the adenomyosis engine over the patient's journal. Result threads
+  // into the rapid-answer derivation (bleeding-row inline flag) AND into
+  // a dedicated chip in the flag strip so the score is visible.
+  const adeno = evaluateAdenomyosis(defaultAdenomyosisInputs(entries));
+
+  const answers = deriveRapidAnswers(entries, {
+    adenomyosisFlag: adeno,
+    uploadedDocuments: [],
+  });
+  const grouped = groupByGroup(answers);
+  // Strip the rapid-answer-derived adeno flag from the chip set so we
+  // don't render it twice; the dedicated AdenoChip below renders the rich
+  // score-bearing label.
+  const flags = collectFlags(answers).filter(
+    (f) => f !== "adenomyosis_consideration",
+  );
+
+  // Live NICE NG73 prompts — gap / partial only — surface above the rows
+  // alongside the journal-derived flags. Each prompt carries the rule pack
+  // version (NICE_RULE_PACK_VERSION) for audit purposes.
+  const niceVisible = visibleNicePrompts(
+    evaluateNiceRules(defaultEmptyInputs(entries)),
   );
 
   return (
     <div className="max-w-5xl mx-auto px-6 lg:px-10 py-8">
-      {/* Patient header strip — compact, tabular */}
       <header className="border-b border-border pb-4 mb-6">
         <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
           <h1 className="font-display text-2xl font-bold tracking-tight">
-            {patient.familyName}, {patient.givenName}
+            {patientName}
+          </h1>
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            <Link
+              href="/cdss/dossier"
+              className="hover:text-foreground underline-offset-2 hover:underline"
+            >
+              CSD
+            </Link>
+            <span aria-hidden="true">·</span>
+            <Link
+              href="/cdss/timeline"
+              className="hover:text-foreground underline-offset-2 hover:underline"
+            >
+              Timeline
+            </Link>
+            <span aria-hidden="true">·</span>
+            <span>Read-only · expires {new Date(expires).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground mt-2">
+          {entries.length === 0
+            ? "Patient has not yet logged journal entries. Awaiting data."
+            : `Derived from ${entries.length} journal entr${entries.length === 1 ? "y" : "ies"}. Consent ${tokenId.slice(0, 8)}…`}
+        </p>
+      </header>
+
+      {(adeno.status === "triggered" ||
+        flags.length > 0 ||
+        niceVisible.length > 0) && (
+        <section className="mb-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          {adeno.status === "triggered" && <AdenoChip result={adeno} />}
+          {flags.map((f) => (
+            <FlagInline key={f}>{FLAG_INLINE[f]}</FlagInline>
+          ))}
+          {niceVisible.map((p) => (
+            <FlagInline key={p.recommendationId} variant="nice">
+              {p.recommendationLabel}
+            </FlagInline>
+          ))}
+        </section>
+      )}
+      {adeno.status === "triggered" && (
+        <AdenoDetail result={adeno} className="mb-8 -mt-2" />
+      )}
+
+      {(["symptom_pattern", "organ_involvement", "bleeding_family", "investigations_treatment_fertility"] as const).map((g) => (
+        <Group key={g} title={GROUP_TITLES[g]} answers={grouped[g] ?? []} />
+      ))}
+
+      <FreeTextQuery isLive={true} />
+
+      <p className="mt-12 text-xs text-muted-foreground border-t border-border pt-4">
+        Read-only access. Every call captured in the audit trail. Decision
+        support, not a diagnosis.
+      </p>
+    </div>
+  );
+}
+
+function Group({
+  title,
+  answers,
+}: {
+  title: string;
+  answers: DerivedAnswer[];
+}) {
+  if (answers.length === 0) return null;
+  return (
+    <section className="mb-8">
+      <h2 className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3 pb-2 border-b border-border">
+        {title}
+      </h2>
+      <dl className="divide-y divide-border">
+        {answers.map((a) => (
+          <div
+            key={a.question}
+            className="grid grid-cols-12 gap-4 py-3 items-baseline"
+          >
+            <dt className="col-span-12 sm:col-span-4 text-sm text-muted-foreground">
+              {a.question}
+            </dt>
+            <dd className="col-span-12 sm:col-span-8">
+              <p
+                className={`text-sm leading-snug ${
+                  a.awaiting ? "italic text-muted-foreground" : ""
+                }`}
+              >
+                {a.answer}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {a.flag && (
+                  <span className="text-[var(--color-brand-red)] font-semibold mr-2">
+                    → {FLAG_INLINE[a.flag]}
+                  </span>
+                )}
+                {a.sources.length > 0 && (
+                  <span>
+                    Source: {a.sources.map((s) => s.label).join("; ")}
+                  </span>
+                )}
+              </p>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function groupByGroup(answers: DerivedAnswer[]): Record<string, DerivedAnswer[]> {
+  const out: Record<string, DerivedAnswer[]> = {};
+  for (const a of answers) {
+    out[a.group] = out[a.group] ?? [];
+    out[a.group].push(a);
+  }
+  return out;
+}
+
+function collectFlags(answers: DerivedAnswer[]): string[] {
+  const set = new Set<string>();
+  for (const a of answers) if (a.flag) set.add(a.flag);
+  return [...set];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Demo panel — keeps the existing mock content for anonymous viewers
+// ─────────────────────────────────────────────────────────────────────────────
+function DemoPanel() {
+  const niceGaps = nicePrompts.filter((p) => p.status === "gap");
+
+  return (
+    <div className="max-w-5xl mx-auto px-6 lg:px-10 py-8">
+      <header className="border-b border-border pb-4 mb-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+          <h1 className="font-display text-2xl font-bold tracking-tight">
+            {MOCK_PATIENT.familyName}, {MOCK_PATIENT.givenName}
             <span className="ml-3 font-normal text-base text-muted-foreground">
-              {patient.age} · {patient.pronouns}
+              {MOCK_PATIENT.age} · {MOCK_PATIENT.pronouns}
             </span>
           </h1>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
@@ -102,105 +292,30 @@ export default function RapidAnswerPanel() {
               Timeline
             </Link>
             <span aria-hidden="true">·</span>
-            <span>Read-only · expires 12 May 2026</span>
+            <span>Demo · synthetic patient</span>
           </div>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
           Suspected endometriosis with adenomyosis co-consideration · PBAC{" "}
-          {pbacThisCycle} this cycle · access via patient consent (Ms R Patel,
-          Cambridge).
+          {pbacThisCycle} this cycle · sign in with patient consent to see your live patient.
         </p>
       </header>
 
-      {/* Flags row */}
       <section className="mb-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-        {adenomyosisFlag.triggered && (
-          <Flag>
-            Adenomyosis co-consideration · score {adenomyosisFlag.score}/6
-          </Flag>
+        {adenomyosisFlag.status === "triggered" && (
+          <AdenoChip result={adenomyosisFlag} />
         )}
         {niceGaps.map((g) => (
-          <Flag key={g.recommendationId}>{g.recommendationLabel}</Flag>
+          <FlagInline key={g.recommendationId}>{g.recommendationLabel}</FlagInline>
         ))}
       </section>
+      {adenomyosisFlag.status === "triggered" && (
+        <AdenoDetail result={adenomyosisFlag} className="mb-8 -mt-2" />
+      )}
 
-      {/* Grouped definition list */}
-      {GROUPS.map((group) => (
-        <section key={group.title} className="mb-8">
-          <h2 className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3 pb-2 border-b border-border">
-            {group.title}
-          </h2>
-          <dl className="divide-y divide-border">
-            {group.questions.map((q) => {
-              const ans = answersByQ[q] as RapidAnswer | undefined;
-              if (!ans) return null;
-              return (
-                <div
-                  key={q}
-                  className="grid grid-cols-12 gap-4 py-3 items-baseline"
-                >
-                  <dt className="col-span-12 sm:col-span-4 text-sm text-muted-foreground">
-                    {q}
-                  </dt>
-                  <dd className="col-span-12 sm:col-span-8">
-                    <p className="text-sm leading-snug">{ans.answer}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {ans.flag && (
-                        <span className="text-[var(--color-brand-red)] font-semibold mr-2">
-                          → {FLAG_INLINE[ans.flag]}
-                        </span>
-                      )}
-                      <span>
-                        Source: {ans.sources.map((s) => s.label).join("; ")}
-                      </span>
-                    </p>
-                  </dd>
-                </div>
-              );
-            })}
-          </dl>
-        </section>
-      ))}
+      <DemoGrouped answers={MOCK_ANSWERS} />
 
-      {/* Free-text query — clean, no decorative card */}
-      <section className="border-t border-border pt-6 mt-10">
-        <h2 className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">
-          Ask the record
-        </h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Synthesised answer with source citations. Diagnostic conclusions
-          refused; framings limited to &ldquo;suggestive of&rdquo; and
-          &ldquo;consistent with&rdquo;.
-          <span className="ai-label ml-2">AI-synthesised</span>
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-2 mb-4">
-          {FREETEXT_DEMO.map((q) => (
-            <button
-              key={q.q}
-              type="button"
-              onClick={() => setActiveQ(q)}
-              className={`text-left text-sm px-3 py-2 rounded-[6px] border transition-colors ${
-                activeQ?.q === q.q
-                  ? "border-primary bg-secondary"
-                  : "border-border bg-card hover:border-primary"
-              }`}
-            >
-              {q.q}
-            </button>
-          ))}
-        </div>
-
-        {activeQ && (
-          <div className="border-l-2 border-primary pl-4 py-1">
-            <p className="text-sm font-medium mb-1">{activeQ.q}</p>
-            <p className="text-sm leading-snug mb-2">{activeQ.a}</p>
-            <p className="text-xs text-muted-foreground">
-              Source: {activeQ.cite}
-            </p>
-          </div>
-        )}
-      </section>
+      <FreeTextQuery isLive={false} demoSamples={DEMO_QA} />
 
       <p className="mt-12 text-xs text-muted-foreground border-t border-border pt-4">
         Read-only access. Every call captured in the audit trail. Decision
@@ -210,14 +325,190 @@ export default function RapidAnswerPanel() {
   );
 }
 
-function Flag({ children }: { children: React.ReactNode }) {
+function DemoGrouped({ answers }: { answers: RapidAnswer[] }) {
+  // Use the same grouping order; the mock has all 13 questions.
+  const groups: { title: string; questions: string[] }[] = [
+    {
+      title: "Symptom pattern",
+      questions: [
+        "Age of pelvic pain onset",
+        "Cyclicity",
+        "Severity trend",
+        "Anatomical pattern",
+      ],
+    },
+    {
+      title: "Organ involvement",
+      questions: ["Bowel involvement", "Bladder involvement", "Sexual function"],
+    },
+    {
+      title: "Bleeding & family",
+      questions: ["Heavy menstrual bleeding", "Family history"],
+    },
+    {
+      title: "Investigations, treatment, fertility",
+      questions: [
+        "Prior imaging",
+        "Treatment trial history",
+        "Prior surgery",
+        "Fertility status and intent",
+      ],
+    },
+  ];
+  const byQ = Object.fromEntries(answers.map((a) => [a.question, a]));
+
   return (
-    <span className="inline-flex items-center gap-1.5 text-[var(--color-brand-red)] font-semibold">
+    <>
+      {groups.map((g) => (
+        <section key={g.title} className="mb-8">
+          <h2 className="text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3 pb-2 border-b border-border">
+            {g.title}
+          </h2>
+          <dl className="divide-y divide-border">
+            {g.questions.map((q) => {
+              const a = byQ[q];
+              if (!a) return null;
+              return (
+                <div
+                  key={q}
+                  className="grid grid-cols-12 gap-4 py-3 items-baseline"
+                >
+                  <dt className="col-span-12 sm:col-span-4 text-sm text-muted-foreground">
+                    {q}
+                  </dt>
+                  <dd className="col-span-12 sm:col-span-8">
+                    <p className="text-sm leading-snug">{a.answer}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {a.flag && (
+                        <span className="text-[var(--color-brand-red)] font-semibold mr-2">
+                          → {FLAG_INLINE[a.flag]}
+                        </span>
+                      )}
+                      <span>
+                        Source: {a.sources.map((s) => s.label).join("; ")}
+                      </span>
+                    </p>
+                  </dd>
+                </div>
+              );
+            })}
+          </dl>
+        </section>
+      ))}
+    </>
+  );
+}
+
+function FlagInline({
+  children,
+  variant = "danger",
+}: {
+  children: React.ReactNode;
+  variant?: "danger" | "nice";
+}) {
+  const colour = variant === "nice"
+    ? "var(--color-clinician-blue)"
+    : "var(--color-brand-red)";
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 font-semibold"
+      style={{ color: colour }}
+    >
       <span
         aria-hidden="true"
-        className="inline-block h-1.5 w-1.5 rounded-full bg-[var(--color-brand-red)]"
+        className="inline-block h-1.5 w-1.5 rounded-full"
+        style={{ background: colour }}
       />
       {children}
     </span>
+  );
+}
+
+function AdenoChip({ result }: { result: AdenomyosisResult }) {
+  return (
+    <FlagInline>
+      Adenomyosis co-consideration · score {result.score}/{result.evaluableMaxScore}
+    </FlagInline>
+  );
+}
+
+function AdenoDetail({
+  result,
+  className = "",
+}: {
+  result: AdenomyosisResult;
+  className?: string;
+}) {
+  return (
+    <details
+      className={`group rounded-md border border-border bg-card overflow-hidden ${className}`}
+    >
+      <summary className="list-none cursor-pointer px-4 py-3 flex items-start gap-3 hover:bg-muted/30 transition-colors">
+        <span
+          aria-hidden="true"
+          className="text-xs text-muted-foreground mt-0.5 select-none group-open:rotate-90 transition-transform inline-block w-3"
+        >
+          ›
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-1">
+            Why this fired · score {result.score}/{result.evaluableMaxScore}{" "}
+            (threshold {result.thresholdScore})
+          </p>
+          <p className="text-sm text-foreground leading-relaxed">
+            {result.clinicianText}
+          </p>
+        </div>
+      </summary>
+      <div className="px-4 pb-4 pt-1 grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4 border-t border-border">
+        <section>
+          <h3 className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-2 pt-3">
+            Triggered criteria ({result.triggers.length})
+          </h3>
+          {result.triggers.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">
+              None — the rule pack fired on awaiting-data weighting alone.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {result.triggers.map((t) => (
+                <li key={t.id} className="text-sm">
+                  <p className="font-semibold text-foreground">{t.label}</p>
+                  <p className="text-muted-foreground leading-snug">
+                    {t.evidence}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section>
+          <h3 className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-2 pt-3">
+            Awaiting inputs ({result.awaitingInputs.length})
+          </h3>
+          {result.awaitingInputs.length === 0 ? (
+            <p className="text-sm text-muted-foreground italic">
+              All criteria evaluable from the patient&apos;s current record.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {result.awaitingInputs.map((a) => (
+                <li key={a.id} className="text-sm">
+                  <p className="font-semibold text-foreground">{a.label}</p>
+                  <p className="text-muted-foreground leading-snug">
+                    Not yet captured — the criterion will become evaluable
+                    when the dependent feature ships.
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <p className="lg:col-span-2 text-xs text-muted-foreground pt-2 border-t border-border">
+          Rule pack {result.rulePackVersion}. Decision support, not a
+          diagnosis.
+        </p>
+      </div>
+    </details>
   );
 }

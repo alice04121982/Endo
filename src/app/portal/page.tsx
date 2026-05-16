@@ -7,7 +7,6 @@ import {
   consentTokens,
   ehpScores,
 } from "@/lib/mock/patient";
-import { Arches, CycleWave, LinkedCircles } from "@/components/illustrations";
 
 const PHASE_LABEL: Record<string, string> = {
   menstrual: "Period",
@@ -23,171 +22,139 @@ export default function PortalHome() {
   const lastEhp = ehpScores[ehpScores.length - 1];
 
   return (
-    <>
-      {/* Hero strip */}
-      <section className="relative overflow-hidden bg-[var(--color-brand-cream)]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 pt-16 pb-12 grid lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-7 relative z-10">
-            <p className="text-sm uppercase tracking-[0.22em] text-[var(--color-brand-stone)] mb-3">
-              Hello, {patient.givenName}
-            </p>
-            <h1
-              className="font-display font-extrabold text-[var(--color-brand-aubergine)] leading-[1.05] tracking-[-0.02em] mb-6"
-              style={{ fontSize: "clamp(2.25rem, 5vw, 4rem)" }}
-            >
-              How are you feeling today?
-            </h1>
-            <p className="text-lg text-[var(--color-brand-stone)] leading-relaxed mb-8 max-w-xl">
-              You&apos;re on cycle day {today?.cycleDay ?? "—"} ·{" "}
-              {today ? PHASE_LABEL[today.cyclePhase] : "—"} phase. Tell Endo
-              about your day in your own words.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/portal/journal/new"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-[12px] bg-[var(--color-brand-clay)] text-white font-semibold hover:bg-[var(--color-brand-clay-deep)] transition-colors"
-              >
-                Start a voice entry
-              </Link>
-              <Link
-                href="/portal/journal"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-[12px] border border-[var(--color-brand-sand)] bg-white text-[var(--color-brand-aubergine)] font-semibold hover:border-[var(--color-brand-clay)] transition-colors"
-              >
-                Open journal
-              </Link>
-            </div>
-          </div>
-          <div className="lg:col-span-5 relative">
-            <Arches className="w-full max-w-[400px] mx-auto" />
-          </div>
+    <div className="max-w-5xl mx-auto px-6 lg:px-10 py-10">
+      <header className="border-b border-[var(--color-brand-sand)] pb-5 mb-8">
+        <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-brand-stone)] mb-2">
+          Hello, {patient.givenName}
+        </p>
+        <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--color-brand-aubergine)] mb-2">
+          How are you feeling today?
+        </h1>
+        <p className="text-sm text-[var(--color-brand-stone)]">
+          Cycle day {today?.cycleDay ?? "—"} ·{" "}
+          {today ? PHASE_LABEL[today.cyclePhase] : "—"} phase
+        </p>
+        <div className="flex flex-wrap gap-2 mt-5">
+          <Link
+            href="/portal/journal/new"
+            className="inline-flex items-center px-4 py-2 rounded-[8px] bg-[var(--color-brand-clay)] text-white text-sm font-semibold hover:bg-[var(--color-brand-clay-deep)] transition-colors"
+          >
+            Voice entry
+          </Link>
+          <Link
+            href="/portal/journal/quick"
+            className="inline-flex items-center px-4 py-2 rounded-[8px] border border-[var(--color-brand-sand)] bg-white text-[var(--color-brand-aubergine)] text-sm font-semibold hover:border-[var(--color-brand-clay)] transition-colors"
+          >
+            Quick form
+          </Link>
         </div>
-        <div className="pointer-events-none">
-          <CycleWave className="w-full h-12" />
-        </div>
-      </section>
+      </header>
 
-      {/* At-a-glance stat row */}
-      <section className="bg-white border-y border-[var(--color-brand-sand)]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-10 py-8 grid grid-cols-2 md:grid-cols-4 gap-6">
-          <Stat
-            eyebrow="Today's pain"
-            value={today ? `${today.painVas}` : "—"}
-            unit="/10"
-            sub={today ? PHASE_LABEL[today.cyclePhase] : ""}
-          />
-          <Stat
-            eyebrow="Cycle"
-            value={today ? `Day ${today.cycleDay}` : "—"}
-            unit=""
-            sub={today ? PHASE_LABEL[today.cyclePhase] : ""}
-          />
-          <Stat
-            eyebrow="This cycle's bleeding"
-            value={`${pbacThisCycle}`}
-            unit=" PBAC"
-            sub={pbacThisCycle > 100 ? "Heavy — discuss with your clinician" : "Within typical range"}
-            attention={pbacThisCycle > 100}
-          />
-          <Stat
-            eyebrow="EHP-30 (May)"
-            value={`${lastEhp.pain}`}
-            unit=" pain"
-            sub="Higher = harder day"
-          />
-        </div>
+      {/* At-a-glance row */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-5 mb-10 pb-8 border-b border-[var(--color-brand-sand)]">
+        <Stat
+          label="Today's pain"
+          value={today ? `${today.painVas}` : "—"}
+          unit="/10"
+        />
+        <Stat
+          label="Cycle"
+          value={today ? `Day ${today.cycleDay}` : "—"}
+          sub={today ? PHASE_LABEL[today.cyclePhase] : ""}
+        />
+        <Stat
+          label="This cycle's bleeding"
+          value={`${pbacThisCycle}`}
+          unit=" PBAC"
+          sub={pbacThisCycle > 100 ? "Heavy — discuss with your clinician" : "Within typical range"}
+          attention={pbacThisCycle > 100}
+        />
+        <Stat
+          label="EHP-30 (May)"
+          value={`${lastEhp.pain}`}
+          sub="Pain scale · higher = harder day"
+        />
       </section>
 
       {/* Recent entries + sharing */}
-      <section className="max-w-7xl mx-auto px-6 lg:px-10 py-16 grid lg:grid-cols-12 gap-8">
+      <section className="grid lg:grid-cols-12 gap-8">
         <div className="lg:col-span-7">
-          <div className="flex items-end justify-between mb-6">
-            <div>
-              <p className="text-sm uppercase tracking-[0.22em] text-[var(--color-brand-stone)] mb-2">
-                Recent entries
-              </p>
-              <h2 className="font-display text-3xl font-extrabold text-[var(--color-brand-aubergine)] tracking-tight">
-                Last few days
-              </h2>
-            </div>
+          <div className="flex items-end justify-between mb-3">
+            <h2 className="text-base font-semibold text-[var(--color-brand-aubergine)]">
+              Recent entries
+            </h2>
             <Link
               href="/portal/journal"
-              className="text-sm font-semibold text-[var(--color-brand-clay)] hover:underline"
+              className="text-sm font-medium text-[var(--color-brand-clay)] hover:underline"
             >
               See all →
             </Link>
           </div>
-          <ul className="space-y-3">
+          <ul className="divide-y divide-[var(--color-brand-sand)] border-y border-[var(--color-brand-sand)]">
             {recent.map((e) => (
               <li
                 key={e.id}
-                className="bg-white border border-[var(--color-brand-sand)] rounded-[16px] p-6 hover:border-[var(--color-brand-clay)] transition-colors"
+                className="py-3 flex items-center justify-between gap-4"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="font-display font-bold text-[var(--color-brand-aubergine)]">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-[var(--color-brand-aubergine)]">
                     {formatDate(e.date)} · pain {e.painVas}/10
                   </p>
-                  <span className="text-xs uppercase tracking-wider text-[var(--color-brand-stone)] shrink-0">
-                    {e.source === "voice" ? "Voice" : "Tap"}
-                  </span>
+                  <p className="text-xs text-[var(--color-brand-stone)] truncate">
+                    {e.patientPlainSummary}
+                  </p>
                 </div>
-                <p className="text-sm text-[var(--color-brand-stone)] leading-relaxed line-clamp-2">
-                  {e.patientPlainSummary}
-                </p>
+                <span className="text-[10px] uppercase tracking-wider text-[var(--color-brand-stone)] shrink-0">
+                  {e.source === "voice" ? "Voice" : "Tap"}
+                </span>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="lg:col-span-5 space-y-4">
+        <aside className="lg:col-span-5 space-y-4">
           <Link
             href="/portal/dossier"
-            className="block bg-[var(--color-brand-aubergine)] text-white rounded-[20px] p-7 hover:opacity-95 transition-opacity"
+            className="block bg-white border border-[var(--color-brand-sand)] rounded-[10px] p-5 hover:border-[var(--color-brand-clay)] transition-colors"
           >
-            <p className="text-xs uppercase tracking-[0.22em] font-semibold text-white/70 mb-3">
+            <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-brand-stone)] mb-1">
               Your dossier
             </p>
-            <h3 className="font-display text-2xl font-extrabold leading-tight mb-3">
-              A summary your clinician can read in thirty seconds
-            </h3>
-            <p className="text-white/80 text-sm leading-relaxed mb-4">
-              Generated from your entries and documents. Updated this morning.
-              Anchored to NICE NG73.
+            <p className="text-sm font-semibold text-[var(--color-brand-aubergine)] mb-1">
+              One-page summary, ready to share
             </p>
-            <span className="inline-flex items-center gap-2 text-sm font-semibold">
-              Open dossier →
-            </span>
+            <p className="text-xs text-[var(--color-brand-stone)] leading-relaxed">
+              Generated from your entries and documents. Updated this morning.
+            </p>
           </Link>
-
           <Link
             href="/portal/share"
-            className="block relative overflow-hidden bg-[var(--color-brand-blush)] rounded-[20px] p-7 hover:opacity-95 transition-opacity"
+            className="block bg-white border border-[var(--color-brand-sand)] rounded-[10px] p-5 hover:border-[var(--color-brand-clay)] transition-colors"
           >
-            <p className="text-xs uppercase tracking-[0.22em] font-semibold text-[var(--color-brand-clay)] mb-3">
+            <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-brand-stone)] mb-1">
               Sharing
             </p>
-            <h3 className="font-display text-2xl font-extrabold leading-tight mb-3 text-[var(--color-brand-aubergine)]">
+            <p className="text-sm font-semibold text-[var(--color-brand-aubergine)] mb-1">
               {activeShares} active access{activeShares === 1 ? "" : "es"}
-            </h3>
-            <p className="text-[var(--color-brand-aubergine)]/80 text-sm leading-relaxed">
-              Manage who can see your record and for how long. Endo never
-              auto-shares.
             </p>
-            <LinkedCircles className="absolute -right-8 -bottom-6 w-44 h-24 opacity-60 pointer-events-none" />
+            <p className="text-xs text-[var(--color-brand-stone)] leading-relaxed">
+              Manage who can see your record and for how long.
+            </p>
           </Link>
-        </div>
+        </aside>
       </section>
-    </>
+    </div>
   );
 }
 
 function Stat({
-  eyebrow,
+  label,
   value,
   unit,
   sub,
   attention,
 }: {
-  eyebrow: string;
+  label: string;
   value: string;
   unit?: string;
   sub?: string;
@@ -195,13 +162,13 @@ function Stat({
 }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-brand-stone)] mb-2">
-        {eyebrow}
+      <p className="text-xs uppercase tracking-[0.14em] text-[var(--color-brand-stone)] mb-1">
+        {label}
       </p>
-      <p className="font-display text-3xl font-extrabold text-[var(--color-brand-aubergine)] tracking-tight">
+      <p className="font-display text-xl font-semibold text-[var(--color-brand-aubergine)] tracking-tight tabular-nums">
         {value}
         {unit && (
-          <span className="text-base font-semibold text-[var(--color-brand-stone)] ml-0.5">
+          <span className="text-sm font-medium text-[var(--color-brand-stone)] ml-0.5">
             {unit}
           </span>
         )}

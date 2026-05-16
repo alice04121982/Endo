@@ -20,7 +20,7 @@ export default function QualityPage() {
       <p className="text-sm uppercase tracking-[0.18em] text-[var(--color-brand-stone)] mb-2">
         Quality of life
       </p>
-      <h1 className="font-display font-extrabold text-[var(--color-brand-aubergine)] tracking-[-0.02em] leading-[1.05] mb-3" style={{ fontSize: "clamp(2rem, 4vw, 3.25rem)" }}>
+      <h1 className="font-display text-2xl font-semibold tracking-tight text-[var(--color-brand-aubergine)] mb-3">
         Your quality of life
       </h1>
       <p className="text-[var(--color-brand-stone)] max-w-2xl mb-2">

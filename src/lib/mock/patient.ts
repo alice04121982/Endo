@@ -642,28 +642,43 @@ export const nicePrompts: NicePrompt[] = [
 // ─────────────────────────────────────────────────────────────────────────────
 // Adenomyosis co-detection
 // ─────────────────────────────────────────────────────────────────────────────
-export const adenomyosisFlag = {
-  triggered: true,
-  score: 4, // out of 6 weighted criteria
+import type { AdenomyosisResult } from "@/lib/clinical/adenomyosis";
+
+export const adenomyosisFlag: AdenomyosisResult = {
+  rulePackVersion: "adenomyosis@2026-05-08.r1",
+  status: "triggered",
+  score: 5,
+  thresholdScore: 3,
+  evaluableMaxScore: 6,
   triggers: [
-    "PBAC > 100 (heavy menstrual bleeding) — score 142",
-    "Junctional-zone irregularity on TVS",
-    "Globular uterus on TVS",
-    "Hormonal therapy non-response in second year",
+    {
+      id: "pbac_over_100",
+      label: "PBAC > 100 (heavy menstrual bleeding)",
+      evidence: "PBAC 142 estimated from journal (>100 threshold)",
+    },
+    {
+      id: "jz_irregularity",
+      label: "Junctional-zone irregularity on imaging",
+      evidence: "TVS report notes junctional-zone irregularity",
+    },
+    {
+      id: "bulky_uterus",
+      label: "Bulky / globular uterus on imaging",
+      evidence: "TVS report describes globular uterus",
+    },
+    {
+      id: "hormonal_non_response",
+      label: "Hormonal therapy non-response",
+      evidence: "Treatment-trial record indicates hormonal non-response",
+    },
+  ],
+  awaitingInputs: [
+    { id: "prior_pregnancy_losses", label: "Prior pregnancy losses" },
   ],
   patientText: `\
-Your record suggests we should also consider adenomyosis alongside
-endometriosis. Adenomyosis is when the lining of the womb grows into the
-muscle wall — it can cause heavy, painful periods. It's separate from
-endometriosis but the two often happen together. This isn't a diagnosis;
-it's a clinical consideration to discuss with your clinician.`,
+Your record suggests we should also consider adenomyosis alongside endometriosis. Adenomyosis is when the lining of the womb grows into the muscle wall — it can cause heavy, painful periods. It's separate from endometriosis but the two often happen together. This isn't a diagnosis; it's a clinical consideration to discuss with your clinician.`,
   clinicianText: `\
-Adenomyosis co-consideration. Triggers: PBAC 142 (HMB), junctional-zone
-irregularity and globular uterus on TVS, hormonal-therapy attenuation
-since cycle 18 of COCP. 2025 systematic review prevalence estimate
-17% focal / 15% diffuse; 41–49% in symptomatic populations; 10×
-underdiagnosed vs histological confirmation. Suggest pelvic MRI with
-junctional-zone protocol.`,
+Adenomyosis co-consideration. Score 5/6. Triggers: PBAC 142 (HMB), junctional-zone irregularity and globular uterus on TVS, hormonal-therapy attenuation since cycle 18 of COCP. 2025 systematic review (Vannuccini et al.) reports 17% focal / 15% diffuse prevalence in general gynaecology cohorts, 41–49% in symptomatic populations, with 10× under-diagnosis vs histological confirmation. Suggest pelvic MRI with junctional-zone protocol where not yet performed.`,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

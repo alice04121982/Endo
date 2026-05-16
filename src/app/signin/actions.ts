@@ -7,6 +7,7 @@ import { getSupabaseServer } from "@/lib/supabase/server";
 const SignInSchema = z.object({
   email: z.string().email("Enter a valid email address"),
   role: z.enum(["patient", "clinician"]),
+  access: z.string().optional(),
 });
 
 function siteOrigin(): string {
@@ -21,27 +22,36 @@ export async function sendMagicLink(formData: FormData) {
   const parsed = SignInSchema.safeParse({
     email: formData.get("email"),
     role: formData.get("role"),
+    access: formData.get("access") ?? undefined,
   });
   if (!parsed.success) {
     const reason = parsed.error.issues[0]?.message ?? "Invalid input";
     redirect(`/signin?error=${encodeURIComponent(reason)}`);
   }
-  const { email, role } = parsed.data;
+  const { email, role, access } = parsed.data;
 
   const supabase = await getSupabaseServer();
   const origin = siteOrigin();
+
+  const callbackParams = new URLSearchParams({ role });
+  if (access) callbackParams.set("access", access);
+
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${origin}/auth/callback?role=${role}`,
+      emailRedirectTo: `${origin}/auth/callback?${callbackParams.toString()}`,
       // Captured by the handle_new_user trigger on first sign-in.
       data: { role, display_name: email.split("@")[0] },
     },
   });
 
   if (error) {
-    redirect(`/signin?role=${role}&error=${encodeURIComponent(error.message)}`);
+    const params = new URLSearchParams({ role, error: error.message });
+    if (access) params.set("access", access);
+    redirect(`/signin?${params.toString()}`);
   }
 
-  redirect(`/signin?sent=1&email=${encodeURIComponent(email)}&role=${role}`);
+  const sentParams = new URLSearchParams({ sent: "1", email, role });
+  if (access) sentParams.set("access", access);
+  redirect(`/signin?${sentParams.toString()}`);
 }
